@@ -9,6 +9,7 @@ import {
   DialogActions,
   TextField,
   IconButton,
+  Alert,
 } from "@mui/material";
 import {
   motion,
@@ -19,12 +20,37 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import HeroSection from "../components/sections/HeroSection";
 import HowItWorksSection from "../components/sections/HowItWorksSection";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const LandingPage = () => {
   const howItWorksRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   const [loginOpen, setLoginOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
+  // Form states
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  // Error states
+  const [loginError, setLoginError] = useState("");
+  const [registerError, setRegisterError] = useState("");
+
+  // Loading states
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [isRegisterLoading, setIsRegisterLoading] = useState(false);
 
   // Navbar background opacity based on scroll
   const navbarBg = useMotionTemplate`rgba(0, 0, 0, ${useTransform(
@@ -37,19 +63,71 @@ const LandingPage = () => {
     howItWorksRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleLoginOpen = () => setLoginOpen(true);
-  const handleLoginClose = () => setLoginOpen(false);
-  const handleRegisterOpen = () => setRegisterOpen(true);
-  const handleRegisterClose = () => setRegisterOpen(false);
-
-  const handleLoginSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    handleLoginClose();
+  const handleLoginOpen = () => {
+    setLoginError("");
+    setLoginForm({ email: "", password: "" });
+    setLoginOpen(true);
   };
 
-  const handleRegisterSubmit = (event: React.FormEvent) => {
+  const handleLoginClose = () => {
+    setLoginError("");
+    setLoginOpen(false);
+  };
+
+  const handleRegisterOpen = () => {
+    setRegisterError("");
+    setRegisterForm({ name: "", email: "", password: "", confirmPassword: "" });
+    setRegisterOpen(true);
+  };
+
+  const handleRegisterClose = () => {
+    setRegisterError("");
+    setRegisterOpen(false);
+  };
+
+  const handleLoginSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    handleRegisterClose();
+    setLoginError("");
+    setIsLoginLoading(true);
+
+    try {
+      await login(loginForm.email, loginForm.password);
+      handleLoginClose();
+      navigate("/dashboard");
+    } catch (error: any) {
+      setLoginError(error.message || "Login failed. Please try again.");
+    } finally {
+      setIsLoginLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setRegisterError("");
+    setIsRegisterLoading(true);
+
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setRegisterError("Passwords do not match");
+      setIsRegisterLoading(false);
+      return;
+    }
+
+    try {
+      await register(
+        registerForm.name,
+        registerForm.email,
+        registerForm.password,
+        registerForm.confirmPassword
+      );
+      handleRegisterClose();
+      navigate("/dashboard");
+    } catch (error: any) {
+      setRegisterError(
+        error.message || "Registration failed. Please try again."
+      );
+    } finally {
+      setIsRegisterLoading(false);
+    }
   };
 
   return (
@@ -115,6 +193,11 @@ const LandingPage = () => {
         </DialogTitle>
         <form onSubmit={handleLoginSubmit}>
           <DialogContent className="!pt-6">
+            {loginError && (
+              <Alert severity="error" className="mb-4">
+                {loginError}
+              </Alert>
+            )}
             <TextField
               autoFocus
               margin="dense"
@@ -124,6 +207,10 @@ const LandingPage = () => {
               variant="outlined"
               required
               className="mb-4"
+              value={loginForm.email}
+              onChange={(e) =>
+                setLoginForm({ ...loginForm, email: e.target.value })
+              }
             />
             <TextField
               margin="dense"
@@ -132,6 +219,10 @@ const LandingPage = () => {
               fullWidth
               variant="outlined"
               required
+              value={loginForm.password}
+              onChange={(e) =>
+                setLoginForm({ ...loginForm, password: e.target.value })
+              }
             />
           </DialogContent>
           <DialogActions className="p-6 bg-gray-50">
@@ -140,8 +231,9 @@ const LandingPage = () => {
               variant="contained"
               fullWidth
               className="!bg-[#3461FF] hover:!bg-blue-700"
+              disabled={isLoginLoading}
             >
-              Login
+              {isLoginLoading ? "Logging in..." : "Login"}
             </Button>
           </DialogActions>
         </form>
@@ -162,6 +254,11 @@ const LandingPage = () => {
         </DialogTitle>
         <form onSubmit={handleRegisterSubmit}>
           <DialogContent className="!pt-6">
+            {registerError && (
+              <Alert severity="error" className="mb-4">
+                {registerError}
+              </Alert>
+            )}
             <TextField
               autoFocus
               margin="dense"
@@ -171,6 +268,10 @@ const LandingPage = () => {
               variant="outlined"
               required
               className="mb-4"
+              value={registerForm.name}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, name: e.target.value })
+              }
             />
             <TextField
               margin="dense"
@@ -180,6 +281,10 @@ const LandingPage = () => {
               variant="outlined"
               required
               className="mb-4"
+              value={registerForm.email}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, email: e.target.value })
+              }
             />
             <TextField
               margin="dense"
@@ -189,6 +294,10 @@ const LandingPage = () => {
               variant="outlined"
               required
               className="mb-4"
+              value={registerForm.password}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, password: e.target.value })
+              }
             />
             <TextField
               margin="dense"
@@ -197,6 +306,13 @@ const LandingPage = () => {
               fullWidth
               variant="outlined"
               required
+              value={registerForm.confirmPassword}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  confirmPassword: e.target.value,
+                })
+              }
             />
           </DialogContent>
           <DialogActions className="p-6 bg-gray-50">
@@ -205,8 +321,9 @@ const LandingPage = () => {
               variant="contained"
               fullWidth
               className="!bg-[#3461FF] hover:!bg-blue-700"
+              disabled={isRegisterLoading}
             >
-              Register
+              {isRegisterLoading ? "Registering..." : "Register"}
             </Button>
           </DialogActions>
         </form>
