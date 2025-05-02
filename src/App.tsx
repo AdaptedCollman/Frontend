@@ -6,9 +6,10 @@ import {
   Navigate,
 } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
-import ChatWizard from "./components/onboarding/ChatWizard";
-import InitialTest from "./pages/InitialTest";
 import Dashboard from "./pages/Dashboard";
+import EnglishQuizPage from "./pages/EnglishQuizPage";
+import MathQuizPage from "./pages/MathQuizPage";
+import HebrewQuizPage from "./pages/HebrewQuizPage";
 import Footer from "./components/Footer";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -18,21 +19,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// Onboarding Route wrapper
-const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, hasCompletedOnboarding } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (!hasCompletedOnboarding) {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;
@@ -50,29 +36,35 @@ const App = () => {
 
               {/* Protected routes */}
               <Route
-                path="/onboarding"
-                element={
-                  <ProtectedRoute>
-                    <ChatWizard />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/initial-test"
-                element={
-                  <ProtectedRoute>
-                    <InitialTest />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
                 path="/dashboard"
                 element={
-                  <OnboardingRoute>
+                  <ProtectedRoute>
                     <Dashboard />
-                  </OnboardingRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/english"
+                element={
+                  <ProtectedRoute>
+                    <EnglishQuizPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/math"
+                element={
+                  <ProtectedRoute>
+                    <MathQuizPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hebrew"
+                element={
+                  <ProtectedRoute>
+                    <HebrewQuizPage />
+                  </ProtectedRoute>
                 }
               />
 

@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 interface Message {
   id: number;
@@ -56,6 +57,8 @@ const subjects = [
 ];
 
 const ChatWizard: React.FC = () => {
+  const { user, isAuthenticated, hasCompletedOnboarding, completeOnboarding } =
+    useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [userResponses, setUserResponses] =
@@ -118,6 +121,19 @@ const ChatWizard: React.FC = () => {
   ];
 
   useEffect(() => {
+    // Redirect if user is not authenticated or has already completed onboarding
+    if (!isAuthenticated) {
+      navigate("/");
+      return;
+    }
+
+    if (hasCompletedOnboarding) {
+      navigate("/dashboard");
+      return;
+    }
+  }, [isAuthenticated, hasCompletedOnboarding, navigate]);
+
+  useEffect(() => {
     // Show initial message with delay
     setTimeout(() => {
       setMessages([questions[0]]);
@@ -129,7 +145,7 @@ const ChatWizard: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleResponse = (response: any) => {
+  const handleResponse = async (response: any) => {
     // Add user response to messages
     const userMessage: Message = {
       id: Date.now(),
@@ -171,13 +187,13 @@ const ChatWizard: React.FC = () => {
     }
 
     // Move to next question after delay
-    setTimeout(() => {
+    setTimeout(async () => {
       if (currentStep < questions.length - 1) {
         setMessages((prev) => [...prev, questions[currentStep + 1]]);
         setCurrentStep((prev) => prev + 1);
         setCurrentInput("");
       } else {
-        // Show completion message and redirect to initial test
+        // Show completion message and mark onboarding as complete
         const completionMessage: Message = {
           id: Date.now() + 1,
           text: "Great! Based on your responses, I'll set up your personalized learning path. Let's start with an initial assessment to determine your current level.",
@@ -185,12 +201,23 @@ const ChatWizard: React.FC = () => {
         };
         setMessages((prev) => [...prev, completionMessage]);
 
-        // Store responses and redirect after delay
-        setTimeout(() => {
-          // TODO: Store responses in backend/context
-          console.log("User responses:", userResponses);
-          navigate("/initial-test");
-        }, 3000);
+        try {
+          // Store responses and complete onboarding
+          await completeOnboarding();
+          // Redirect after delay
+          setTimeout(() => {
+            navigate("/initial-test");
+          }, 3000);
+        } catch (error) {
+          console.error("Error completing onboarding:", error);
+          // Add error message to chat
+          const errorMessage: Message = {
+            id: Date.now() + 2,
+            text: "There was an error saving your responses. Please try again.",
+            type: "bot",
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        }
       }
     }, 1000);
   };

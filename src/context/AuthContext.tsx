@@ -5,12 +5,15 @@ interface User {
   id: string;
   name: string;
   email: string;
+  hasCompletedOnboarding: boolean;
+  currentLevel: number;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  hasCompletedOnboarding: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (
     name: string,
@@ -19,6 +22,7 @@ interface AuthContextType {
     confirmPassword: string
   ) => Promise<void>;
   logout: () => void;
+  completeOnboarding: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const storedUser = authService.getUser();
         if (storedUser && (await authService.verifyToken())) {
-          setUser(storedUser);
+          setUser({ ...storedUser, hasCompletedOnboarding: true });
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -50,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login({ email, password });
-      setUser(response.user);
+      setUser({ ...response.user, hasCompletedOnboarding: true });
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -70,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         password,
         confirmPassword,
       });
-      setUser(response.user);
+      setUser({ ...response.user, hasCompletedOnboarding: true });
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -82,13 +86,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
   };
 
+  const completeOnboarding = async () => {
+    try {
+      await authService.completeOnboarding();
+      setUser((prevUser) =>
+        prevUser ? { ...prevUser, hasCompletedOnboarding: true } : null
+      );
+    } catch (error) {
+      console.error("Complete onboarding error:", error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     isAuthenticated: !!user,
     isLoading,
+    hasCompletedOnboarding: user?.hasCompletedOnboarding ?? false,
     login,
     register,
     logout,
+    completeOnboarding,
   };
 
   return (

@@ -82,4 +82,17 @@ export const authService = {
   isAuthenticated(): boolean {
     return !!this.getToken();
   },
+
+  async completeOnboarding(): Promise<void> {
+    try {
+      const response = await axios.post(`${API_URL}/complete-onboarding`);
+      if (response.data.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to complete onboarding"
+      );
+    }
+  },
 };
