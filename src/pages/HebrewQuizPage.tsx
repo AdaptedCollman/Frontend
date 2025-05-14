@@ -1,51 +1,55 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle, XCircle, Timer } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
 
-// Mock question data
-const mockQuestion = {
-  id: 1,
-  totalQuestions: 5,
-  question:
-    "מה המשמעות של המילה 'שלום'?\nWhat is the meaning of the word 'שלום'?",
-  options: [
-    {
-      id: "1",
-      text: "Peace / Hello / Goodbye - שלום / להתראות",
-    },
-    {
-      id: "2",
-      text: "War / Conflict - מלחמה / סכסוך",
-    },
-    {
-      id: "3",
-      text: "Food / Meal - אוכל / ארוחה",
-    },
-    {
-      id: "4",
-      text: "House / Home - בית / דירה",
-    },
-  ],
-  correctAnswer: "1",
-  explanation:
-    "המילה 'שלום' היא מילה רב-משמעית המשמשת לברכה, פרידה ומשמעותה גם שלווה ורוגע.\nThe word 'Shalom' is a versatile word used for greeting, farewell, and also means peace and tranquility.",
-};
-
 const HebrewQuizPage = () => {
+  const [question, setQuestion] = useState<any | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(60); // 60 seconds = 1 minute
+  const [timeRemaining, setTimeRemaining] = useState(60);
+
+  const fetchQuestion = async () => {
+    try {
+      const res = await axios.post("http://localhost:3000/api/questions", {
+        topic: "hebrew",
+        difficulty: 3,
+      });
+
+      const q = res.data;
+      setQuestion({
+        id: 1,
+        totalQuestions: 1,
+        question: q.content,
+        options: q.answerOptions.map((text: string, index: number) => ({
+          id: (index + 1).toString(),
+          text,
+        })),
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      });
+      setSelectedAnswer("");
+      setIsSubmitted(false);
+      setIsCorrect(false);
+      setTimeRemaining(60);
+    } catch (err) {
+      console.error("Failed to fetch question:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestion();
+  }, []);
 
   useEffect(() => {
     if (timeRemaining > 0 && !isSubmitted) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => prev - 1);
       }, 1000);
-
       return () => clearInterval(timer);
     } else if (timeRemaining === 0 && !isSubmitted) {
       handleSubmit();
@@ -62,9 +66,9 @@ const HebrewQuizPage = () => {
 
   const handleSubmit = () => {
     if (!selectedAnswer && timeRemaining === 0) {
-      setSelectedAnswer(""); // Force an incorrect answer if time runs out
+      setSelectedAnswer("");
     }
-    const correct = selectedAnswer === mockQuestion.correctAnswer;
+    const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
     setIsSubmitted(true);
   };
@@ -75,6 +79,8 @@ const HebrewQuizPage = () => {
     }
   };
 
+  if (!question) return <div className="p-8">טוען שאלה...</div>;
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -82,62 +88,40 @@ const HebrewQuizPage = () => {
       <main className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
-            {/* Quiz Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              {/* Timer and Question Number */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" dir="rtl">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Timer className="w-5 h-5" />
-                  <span className="font-medium">Time Remaining:</span>
+                  <span className="font-medium">זמן שנותר:</span>
                   <span className="font-mono">{formatTime(timeRemaining)}</span>
                 </div>
-                <div className="text-right">
+                <div className="text-left">
                   <h2 className="text-lg font-bold text-gray-900">
-                    Question {mockQuestion.id} out of{" "}
-                    {mockQuestion.totalQuestions}
+                    שאלה {question.id} מתוך {question.totalQuestions}
                   </h2>
                 </div>
               </div>
 
-              {/* Question Navigation */}
-              <div className="flex justify-center gap-2 mb-8">
-                {Array.from({ length: mockQuestion.totalQuestions }, (_, i) => (
-                  <Button
-                    key={i + 1}
-                    variant={mockQuestion.id === i + 1 ? "default" : "outline"}
-                    className={cn(
-                      "w-12 h-12",
-                      mockQuestion.id === i + 1 &&
-                        "bg-purple-600 hover:bg-purple-700"
-                    )}
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Question Content */}
-              <div className="mb-8 text-right" dir="rtl">
+              <div className="mb-8 text-right">
                 <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
-                  {mockQuestion.question}
+                  {question.question}
                 </p>
               </div>
 
-              {/* Options */}
-              <div className="space-y-4 mb-8" dir="rtl">
+              <div className="space-y-4 mb-8">
                 <RadioGroup
                   value={selectedAnswer}
                   onValueChange={setSelectedAnswer}
                   className="space-y-3"
                   disabled={isSubmitted}
                 >
-                  {mockQuestion.options.map((option) => (
+                  {question.options.map((option: any) => (
                     <label
                       key={option.id}
                       onClick={() => handleAnswerClick(option.id)}
                       className={cn(
                         "flex items-center justify-between p-4 rounded-lg border",
-                        isSubmitted && option.id === mockQuestion.correctAnswer
+                        isSubmitted && option.id === question.correctAnswer
                           ? "border-green-500 bg-green-50"
                           : isSubmitted &&
                             option.id === selectedAnswer &&
@@ -161,9 +145,8 @@ const HebrewQuizPage = () => {
                 </RadioGroup>
               </div>
 
-              {/* Feedback Section */}
               {isSubmitted && (
-                <div className="mb-6 text-right" dir="rtl">
+                <div className="mb-6 text-right">
                   <div className="flex items-center gap-2 mb-2 justify-end">
                     {isCorrect ? (
                       <>
@@ -183,23 +166,24 @@ const HebrewQuizPage = () => {
                       </>
                     )}
                   </div>
-                  {isCorrect && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      {mockQuestion.explanation}
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm text-gray-600">{question.explanation}</p>
                 </div>
               )}
 
-              {/* Submit Button */}
-              <div className="text-left" dir="ltr">
+              <div className="flex flex-col sm:flex-row gap-4 text-left" dir="ltr">
                 <Button
                   onClick={handleSubmit}
                   disabled={!selectedAnswer || isSubmitted}
-                  className="w-full md:w-auto bg-purple-600 hover:bg-purple-700"
+                  className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
                 >
                   Submit Answer
                 </Button>
+                <Button
+                  onClick={fetchQuestion}
+                  className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                >
+                  שאלה הבאה
+                  </Button>
               </div>
             </div>
           </div>
