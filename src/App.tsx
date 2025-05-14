@@ -12,6 +12,15 @@ import MathQuizPage from "./pages/MathQuizPage";
 import HebrewQuizPage from "./pages/HebrewQuizPage";
 import Footer from "./components/Footer";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import Mission from "./pages/Mission";
+import HelpCenter from "./pages/HelpCenter";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Team from "./pages/Team";
+import Careers from "./pages/Careers";
+import FAQ from "./pages/FAQ";
+import Cookies from "./pages/Cookies";
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +42,17 @@ const App = () => {
             <Routes>
               {/* Public route */}
               <Route path="/" element={<LandingPage />} />
+
+              {/* Footer pages */}
+              <Route path="/mission" element={<Mission />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/cookies" element={<Cookies />} />
 
               {/* Protected routes */}
               <Route
