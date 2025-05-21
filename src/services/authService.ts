@@ -95,4 +95,17 @@ export const authService = {
       );
     }
   },
+
+  async updateUser(data: {
+    name?: string;
+    profileImage?: string | null;
+  }): Promise<any> {
+    try {
+      const response = await axios.put(`${API_URL}/users/profile`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
+  },
 };

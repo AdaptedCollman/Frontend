@@ -7,6 +7,12 @@ interface User {
   email: string;
   hasCompletedOnboarding: boolean;
   currentLevel: number;
+  profileImage?: string | null;
+}
+
+interface UpdateUserData {
+  name?: string;
+  profileImage?: string | null;
 }
 
 interface AuthContextType {
@@ -23,6 +29,7 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => void;
   completeOnboarding: () => Promise<void>;
+  updateUser: (data: UpdateUserData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,6 +105,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const updateUser = async (data: UpdateUserData) => {
+    try {
+      const updatedUser = await authService.updateUser(data);
+      setUser(updatedUser);
+    } catch (error) {
+      console.error("Update user error:", error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     isAuthenticated: !!user,
@@ -107,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     register,
     logout,
     completeOnboarding,
+    updateUser,
   };
 
   return (
