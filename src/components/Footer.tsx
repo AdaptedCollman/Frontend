@@ -50,6 +50,14 @@ const Footer = () => {
                     Careers
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    to="/learning-advisor"
+                    className="hover:text-blue-600 transition-colors"
+                  >
+                    Learning Advisor
+                  </Link>
+                </li>
               </ul>
               <ul className="space-y-2">
                 <li>
