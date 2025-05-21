@@ -1,5 +1,4 @@
 import React from "react";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Button } from "../components/ui/button";
@@ -9,8 +8,7 @@ import {
   Typography,
   Box,
   LinearProgress,
-  Avatar,
-  IconButton,
+  
 } from "@mui/material";
 import {
   TrendingUp,
@@ -18,8 +16,7 @@ import {
   Clock,
   Award,
   Users,
-  Search,
-  Bell,
+  
   ArrowRight,
   Languages,
   BookOpen,
@@ -27,7 +24,6 @@ import {
 } from "lucide-react";
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Mock data (replace with real data later)
@@ -116,25 +112,7 @@ const Dashboard = () => {
             <Typography variant="h5" className="font-bold text-gray-900">
               Dashboard
             </Typography>
-            <div className="flex items-center gap-4">
-              <IconButton className="text-gray-600">
-                <Search size={20} />
-              </IconButton>
-              <IconButton className="text-gray-600">
-                <Bell size={20} />
-              </IconButton>
-              <div className="flex items-center gap-3">
-                <Avatar>{user?.name?.[0] || "U"}</Avatar>
-                <div>
-                  <Typography variant="subtitle2" className="font-medium">
-                    {user?.name || "User Name"}
-                  </Typography>
-                  <Typography variant="caption" className="text-gray-500">
-                    Student
-                  </Typography>
-                </div>
-              </div>
-            </div>
+            
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -8,6 +8,7 @@ import {
   Atom,
   Brain,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NavItem from "./navigation/NavItem";
@@ -49,8 +50,9 @@ const navItems = [
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const navigate = useNavigate();
 
   return (
     <aside
@@ -93,30 +95,52 @@ const Sidebar = () => {
       </nav>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <div
-          className={cn(
-            "flex items-center gap-3",
-            isCollapsed && "justify-center"
-          )}
-        >
-          <Avatar className="w-8 h-8 bg-blue-600">
-            <AvatarFallback className="bg-blue-600 text-white">
-              {user?.name?.[0] || "U"}
-            </AvatarFallback>
-          </Avatar>
-          {!isCollapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                {user?.name || "User Name"}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                {user?.email || "user@example.com"}
-              </p>
-            </div>
-          )}
+      <Link to="/profile">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <div
+            className={cn(
+              "flex items-center gap-3",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Avatar className="w-8 h-8 bg-blue-600">
+              <AvatarFallback className="bg-blue-600 text-white">
+                {user?.name?.[0] || "U"}
+              </AvatarFallback>
+            </Avatar>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {user?.name || "User Name"}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {user?.email || "user@example.com"}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </Link>
+
+      {/* Logout Button */}
+      <button
+        onClick={async () => {
+          await fetch("/api/auth/logout", { method: "POST" });
+          logout();
+          navigate("/");
+        }}
+        className="flex items-center gap-2 w-full p-4 border-t border-gray-200 dark:border-gray-800 text-red-600 hover:bg-red-50 dark:hover:bg-gray-800 transition-colors"
+        style={{
+          outline: "none",
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+        }}
+        aria-label="Logout"
+      >
+        <LogOut size={20} />
+        {!isCollapsed && <span className="text-sm font-medium">Logout</span>}
+      </button>
     </aside>
   );
 };

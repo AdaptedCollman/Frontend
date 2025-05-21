@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TextField,
   Button,
-  Slider,
   Select,
   MenuItem,
   FormControl,
@@ -14,6 +13,7 @@ import {
 import SchoolIcon from "@mui/icons-material/School";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import Sidebar from "@/components/Sidebar";
 
 interface Message {
   id: number;
@@ -57,15 +57,16 @@ const subjects = [
 ];
 
 const ChatWizard: React.FC = () => {
-  const { user, isAuthenticated, hasCompletedOnboarding, completeOnboarding } =
+  const { isAuthenticated, hasCompletedOnboarding, completeOnboarding } =
     useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [userResponses, setUserResponses] =
     useState<UserResponses>(initialResponses);
   const [currentInput, setCurrentInput] = useState("");
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const isFirstRender = useRef(true);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const questions: Message[] = [
     {
@@ -121,32 +122,39 @@ const ChatWizard: React.FC = () => {
   ];
 
   useEffect(() => {
-    // Redirect if user is not authenticated or has already completed onboarding
     if (!isAuthenticated) {
       navigate("/");
       return;
     }
-
-    if (hasCompletedOnboarding) {
-      navigate("/dashboard");
-      return;
-    }
-  }, [isAuthenticated, hasCompletedOnboarding, navigate]);
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    // Show initial message with delay
     setTimeout(() => {
       setMessages([questions[0]]);
     }, 500);
   }, []);
 
   useEffect(() => {
-    // Scroll to bottom on new message
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const container = chatContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
 
-  const handleResponse = async (response: any) => {
-    // Add user response to messages
+  const handleResponse = async (response: unknown) => {
+    if (
+      typeof response !== "string" &&
+      !Array.isArray(response) &&
+      typeof response !== "number"
+    ) {
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now(),
       text: Array.isArray(response) ? response.join(", ") : response.toString(),
@@ -155,45 +163,51 @@ const ChatWizard: React.FC = () => {
 
     setMessages((prev) => [...prev, userMessage]);
 
-    // Update user responses based on current step
     switch (currentStep) {
       case 0:
-        setUserResponses((prev) => ({ ...prev, subjects: response }));
+        setUserResponses((prev) => ({
+          ...prev,
+          subjects: response as string[],
+        }));
         break;
       case 1:
-        setUserResponses((prev) => ({ ...prev, averageGrades: response }));
+        setUserResponses((prev) => ({
+          ...prev,
+          averageGrades: response as string,
+        }));
         break;
       case 2:
         setUserResponses((prev) => ({
           ...prev,
-          selfRating: { ...prev.selfRating, math: response },
+          selfRating: { ...prev.selfRating, math: response as number },
         }));
         break;
       case 3:
         setUserResponses((prev) => ({
           ...prev,
-          selfRating: { ...prev.selfRating, verbal: response },
+          selfRating: { ...prev.selfRating, verbal: response as number },
         }));
         break;
       case 4:
         setUserResponses((prev) => ({
           ...prev,
-          selfRating: { ...prev.selfRating, logic: response },
+          selfRating: { ...prev.selfRating, logic: response as number },
         }));
         break;
       case 5:
-        setUserResponses((prev) => ({ ...prev, targetUniversity: response }));
+        setUserResponses((prev) => ({
+          ...prev,
+          targetUniversity: response as string,
+        }));
         break;
     }
 
-    // Move to next question after delay
     setTimeout(async () => {
       if (currentStep < questions.length - 1) {
         setMessages((prev) => [...prev, questions[currentStep + 1]]);
         setCurrentStep((prev) => prev + 1);
         setCurrentInput("");
       } else {
-        // Show completion message and mark onboarding as complete
         const completionMessage: Message = {
           id: Date.now() + 1,
           text: "Great! Based on your responses, I'll set up your personalized learning path. Let's start with an initial assessment to determine your current level.",
@@ -202,15 +216,12 @@ const ChatWizard: React.FC = () => {
         setMessages((prev) => [...prev, completionMessage]);
 
         try {
-          // Store responses and complete onboarding
           await completeOnboarding();
-          // Redirect after delay
           setTimeout(() => {
             navigate("/initial-test");
           }, 3000);
         } catch (error) {
           console.error("Error completing onboarding:", error);
-          // Add error message to chat
           const errorMessage: Message = {
             id: Date.now() + 2,
             text: "There was an error saving your responses. Please try again.",
@@ -226,11 +237,7 @@ const ChatWizard: React.FC = () => {
     switch (message.inputType) {
       case "multiSelect":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-wrap gap-2 mt-4"
-          >
+          <motion.div className="flex flex-wrap gap-2 mt-4">
             {message.options?.map((option) => (
               <Chip
                 key={option}
@@ -245,9 +252,7 @@ const ChatWizard: React.FC = () => {
                   }));
                 }}
                 color={
-                  userResponses.subjects.includes(option)
-                    ? "primary"
-                    : "default"
+                  userResponses.subjects.includes(option) ? "primary" : "default"
                 }
                 className="cursor-pointer"
               />
@@ -262,14 +267,9 @@ const ChatWizard: React.FC = () => {
             </Button>
           </motion.div>
         );
-
       case "select":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4"
-          >
+          <motion.div className="mt-4">
             <FormControl fullWidth>
               <InputLabel>Select Grade Range</InputLabel>
               <Select
@@ -294,14 +294,9 @@ const ChatWizard: React.FC = () => {
             </FormControl>
           </motion.div>
         );
-
       case "rating":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4"
-          >
+          <motion.div className="mt-4">
             <Rating
               value={Number(currentInput) || 0}
               onChange={(_, value) => setCurrentInput(value?.toString() || "0")}
@@ -318,14 +313,9 @@ const ChatWizard: React.FC = () => {
             </Button>
           </motion.div>
         );
-
       case "text":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4"
-          >
+          <motion.div className="mt-4">
             <TextField
               fullWidth
               value={currentInput}
@@ -343,71 +333,74 @@ const ChatWizard: React.FC = () => {
             </Button>
           </motion.div>
         );
-
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <SchoolIcon className="text-[#3461FF] text-4xl mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900">
-            Welcome to Adapt<span className="text-[#3461FF]">ED</span>
-          </h2>
-          <p className="mt-2 text-gray-600">
-            Let's personalize your learning experience
-          </p>
-        </div>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 overflow-auto">
+        <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-8">
+              <SchoolIcon className="text-[#3461FF] text-4xl mb-4" />
+              <h2 className="text-3xl font-bold text-gray-900">
+                Welcome to Adapt<span className="text-[#3461FF]">ED</span>
+              </h2>
+              <p className="mt-2 text-gray-600">
+                Let's personalize your learning experience
+              </p>
+            </div>
 
-        {/* Chat container */}
-        <div className="bg-white rounded-xl shadow-lg p-6 min-h-[600px] flex flex-col">
-          <div className="flex-grow overflow-y-auto mb-4">
-            <AnimatePresence>
-              {messages.map((message) => (
+            <div className="bg-white rounded-xl shadow-lg p-6 h-[600px] flex flex-col">
+              <div
+                ref={chatContainerRef}
+                className="flex-grow overflow-y-auto mb-4"
+              >
+                <AnimatePresence>
+                  {messages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className={`mb-4 ${
+                        message.type === "bot" ? "mr-auto" : "ml-auto"
+                      }`}
+                    >
+                      <div
+                        className={`rounded-xl p-4 max-w-[80%] ${
+                          message.type === "bot"
+                            ? "bg-gray-100 text-gray-900"
+                            : "bg-[#3461FF] text-white"
+                        }`}
+                      >
+                        {message.text}
+                        {message.type === "bot" &&
+                          message.inputType &&
+                          renderInput(message)}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              <div className="h-1 bg-gray-200 rounded-full mt-4">
                 <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className={`mb-4 ${
-                    message.type === "bot" ? "mr-auto" : "ml-auto"
-                  }`}
-                >
-                  <div
-                    className={`rounded-xl p-4 max-w-[80%] ${
-                      message.type === "bot"
-                        ? "bg-gray-100 text-gray-900"
-                        : "bg-[#3461FF] text-white"
-                    }`}
-                  >
-                    {message.text}
-                    {message.type === "bot" &&
-                      message.inputType &&
-                      renderInput(message)}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Progress indicator */}
-          <div className="h-1 bg-gray-200 rounded-full mt-4">
-            <motion.div
-              className="h-full bg-[#3461FF] rounded-full"
-              initial={{ width: 0 }}
-              animate={{
-                width: `${(currentStep / (questions.length - 1)) * 100}%`,
-              }}
-              transition={{ duration: 0.5 }}
-            />
+                  className="h-full bg-[#3461FF] rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{
+                    width: `${(currentStep / (questions.length - 1)) * 100}%`,
+                  }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
