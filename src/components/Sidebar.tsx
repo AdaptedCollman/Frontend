@@ -44,7 +44,7 @@ const navItems = [
   {
     icon: Brain,
     label: "Learning Advisor",
-    href: "/advisor",
+    href: "/learning-advisor",
   },
 ];
 

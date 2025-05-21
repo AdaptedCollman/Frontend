@@ -1,51 +1,55 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle, XCircle, Timer } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
 
-// Mock question data
-const mockQuestion = {
-  id: 1,
-  totalQuestions: 5,
-  question:
-    "Which literary device is used in the following sentence?\n'The wind whispered through the trees.'",
-  options: [
-    {
-      id: "1",
-      text: "Personification",
-    },
-    {
-      id: "2",
-      text: "Simile",
-    },
-    {
-      id: "3",
-      text: "Metaphor",
-    },
-    {
-      id: "4",
-      text: "Alliteration",
-    },
-  ],
-  correctAnswer: "1",
-  explanation:
-    "This is personification because it attributes a human action (whispering) to a non-human thing (the wind).",
-};
-
 const EnglishQuizPage = () => {
+  const [question, setQuestion] = useState<any | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(60); // 60 seconds = 1 minute
+  const [timeRemaining, setTimeRemaining] = useState(60);
+
+  const fetchQuestion = async () => {
+    try {
+      const res = await axios.post("http://localhost:3000/api/questions", {
+        topic: "english",
+        difficulty: 3,
+      });
+
+      const q = res.data;
+      setQuestion({
+        id: 1,
+        totalQuestions: 1,
+        question: q.content,
+        options: q.answerOptions.map((text: string, index: number) => ({
+          id: (index + 1).toString(),
+          text,
+        })),
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      });
+      setSelectedAnswer("");
+      setIsSubmitted(false);
+      setIsCorrect(false);
+      setTimeRemaining(60);
+    } catch (err) {
+      console.error("Failed to fetch question:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestion();
+  }, []);
 
   useEffect(() => {
     if (timeRemaining > 0 && !isSubmitted) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => prev - 1);
       }, 1000);
-
       return () => clearInterval(timer);
     } else if (timeRemaining === 0 && !isSubmitted) {
       handleSubmit();
@@ -62,9 +66,9 @@ const EnglishQuizPage = () => {
 
   const handleSubmit = () => {
     if (!selectedAnswer && timeRemaining === 0) {
-      setSelectedAnswer(""); // Force an incorrect answer if time runs out
+      setSelectedAnswer("");
     }
-    const correct = selectedAnswer === mockQuestion.correctAnswer;
+    const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
     setIsSubmitted(true);
   };
@@ -75,6 +79,8 @@ const EnglishQuizPage = () => {
     }
   };
 
+  if (!question) return <div className="p-8">Loading question...</div>;
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -82,9 +88,7 @@ const EnglishQuizPage = () => {
       <main className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
-            {/* Quiz Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              {/* Timer and Question Number */}
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Timer className="w-5 h-5" />
@@ -93,21 +97,19 @@ const EnglishQuizPage = () => {
                 </div>
                 <div className="text-right">
                   <h2 className="text-lg font-bold text-gray-900">
-                    Question {mockQuestion.id} out of{" "}
-                    {mockQuestion.totalQuestions}
+                    Question {question.id} out of {question.totalQuestions}
                   </h2>
                 </div>
               </div>
 
-              {/* Question Navigation */}
               <div className="flex justify-center gap-2 mb-8">
-                {Array.from({ length: mockQuestion.totalQuestions }, (_, i) => (
+                {Array.from({ length: question.totalQuestions }, (_, i) => (
                   <Button
                     key={i + 1}
-                    variant={mockQuestion.id === i + 1 ? "default" : "outline"}
+                    variant={question.id === i + 1 ? "default" : "outline"}
                     className={cn(
                       "w-12 h-12",
-                      mockQuestion.id === i + 1 &&
+                      question.id === i + 1 &&
                         "bg-purple-600 hover:bg-purple-700"
                     )}
                   >
@@ -116,14 +118,12 @@ const EnglishQuizPage = () => {
                 ))}
               </div>
 
-              {/* Question Content */}
               <div className="mb-8">
                 <p className="text-lg text-gray-800 whitespace-pre-line">
-                  {mockQuestion.question}
+                  {question.question}
                 </p>
               </div>
 
-              {/* Options */}
               <div className="space-y-4 mb-8">
                 <RadioGroup
                   value={selectedAnswer}
@@ -131,13 +131,13 @@ const EnglishQuizPage = () => {
                   className="space-y-3"
                   disabled={isSubmitted}
                 >
-                  {mockQuestion.options.map((option) => (
+                  {question.options.map((option: any) => (
                     <label
                       key={option.id}
                       onClick={() => handleAnswerClick(option.id)}
                       className={cn(
                         "flex items-center justify-between p-4 rounded-lg border",
-                        isSubmitted && option.id === mockQuestion.correctAnswer
+                        isSubmitted && option.id === question.correctAnswer
                           ? "border-green-500 bg-green-50"
                           : isSubmitted &&
                             option.id === selectedAnswer &&
@@ -161,7 +161,6 @@ const EnglishQuizPage = () => {
                 </RadioGroup>
               </div>
 
-              {/* Feedback Section */}
               {isSubmitted && (
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
@@ -183,22 +182,27 @@ const EnglishQuizPage = () => {
                       </>
                     )}
                   </div>
-                  {isCorrect && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      {mockQuestion.explanation}
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm text-gray-600">
+                    {question.explanation}
+                  </p>
                 </div>
               )}
 
-              {/* Submit Button */}
-              <Button
-                onClick={handleSubmit}
-                disabled={!selectedAnswer || isSubmitted}
-                className="w-full md:w-auto bg-purple-600 hover:bg-purple-700"
-              >
-                Submit Answer
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!selectedAnswer || isSubmitted}
+                  className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                >
+                  Submit Answer
+                </Button>
+                <Button
+                  onClick={fetchQuestion}
+                  className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                >
+                  Next Question
+                </Button>
+              </div>
             </div>
           </div>
         </div>
