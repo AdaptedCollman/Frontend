@@ -12,8 +12,10 @@ const HebrewQuizPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchQuestion = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.post("http://localhost:3000/api/questions", {
         topic: "hebrew",
@@ -39,6 +41,7 @@ const HebrewQuizPage = () => {
     } catch (err) {
       console.error("Failed to fetch question:", err);
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -79,7 +82,40 @@ const HebrewQuizPage = () => {
     }
   };
 
-  if (!question) return <div className="p-8">טוען שאלה...</div>;
+  if (isLoading || !question)
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-auto">
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-center items-center h-64">
+                <svg
+                  className="animate-spin h-12 w-12 text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -88,7 +124,10 @@ const HebrewQuizPage = () => {
       <main className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" dir="rtl">
+            <div
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+              dir="rtl"
+            >
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Timer className="w-5 h-5" />
@@ -166,11 +205,16 @@ const HebrewQuizPage = () => {
                       </>
                     )}
                   </div>
-                  <p className="mt-2 text-sm text-gray-600">{question.explanation}</p>
+                  <p className="mt-2 text-sm text-gray-600">
+                    {question.explanation}
+                  </p>
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 text-left" dir="ltr">
+              <div
+                className="flex flex-col sm:flex-row gap-4 text-left"
+                dir="ltr"
+              >
                 <Button
                   onClick={handleSubmit}
                   disabled={!selectedAnswer || isSubmitted}
@@ -181,9 +225,10 @@ const HebrewQuizPage = () => {
                 <Button
                   onClick={fetchQuestion}
                   className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                  disabled={isLoading}
                 >
                   שאלה הבאה
-                  </Button>
+                </Button>
               </div>
             </div>
           </div>

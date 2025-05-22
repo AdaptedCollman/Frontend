@@ -12,8 +12,10 @@ const EnglishQuizPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchQuestion = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.post("http://localhost:3000/api/questions", {
         topic: "english",
@@ -39,6 +41,7 @@ const EnglishQuizPage = () => {
     } catch (err) {
       console.error("Failed to fetch question:", err);
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -79,133 +82,158 @@ const EnglishQuizPage = () => {
     }
   };
 
-  if (!question) return <div className="p-8">Loading question...</div>;
-
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Timer className="w-5 h-5" />
-                  <span className="font-medium">Time Remaining:</span>
-                  <span className="font-mono">{formatTime(timeRemaining)}</span>
+        {isLoading || !question ? (
+          <div className="flex justify-center items-center h-full">
+            <svg
+              className="animate-spin h-12 w-12 text-purple-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              ></path>
+            </svg>
+          </div>
+        ) : (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Timer className="w-5 h-5" />
+                    <span className="font-medium">Time Remaining:</span>
+                    <span className="font-mono">
+                      {formatTime(timeRemaining)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Question {question.id} out of {question.totalQuestions}
+                    </h2>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <h2 className="text-lg font-bold text-gray-900">
-                    Question {question.id} out of {question.totalQuestions}
-                  </h2>
-                </div>
-              </div>
 
-              <div className="flex justify-center gap-2 mb-8">
-                {Array.from({ length: question.totalQuestions }, (_, i) => (
-                  <Button
-                    key={i + 1}
-                    variant={question.id === i + 1 ? "default" : "outline"}
-                    className={cn(
-                      "w-12 h-12",
-                      question.id === i + 1 &&
-                        "bg-purple-600 hover:bg-purple-700"
-                    )}
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="mb-8">
-                <p className="text-lg text-gray-800 whitespace-pre-line">
-                  {question.question}
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <RadioGroup
-                  value={selectedAnswer}
-                  onValueChange={setSelectedAnswer}
-                  className="space-y-3"
-                  disabled={isSubmitted}
-                >
-                  {question.options.map((option: any) => (
-                    <label
-                      key={option.id}
-                      onClick={() => handleAnswerClick(option.id)}
+                <div className="flex justify-center gap-2 mb-8">
+                  {Array.from({ length: question.totalQuestions }, (_, i) => (
+                    <Button
+                      key={i + 1}
+                      variant={question.id === i + 1 ? "default" : "outline"}
                       className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border",
-                        isSubmitted && option.id === question.correctAnswer
-                          ? "border-green-500 bg-green-50"
-                          : isSubmitted &&
-                            option.id === selectedAnswer &&
-                            !isCorrect
-                          ? "border-red-500 bg-red-50"
-                          : option.id === selectedAnswer
-                          ? "border-purple-500 bg-purple-50"
-                          : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
-                        "cursor-pointer transition-colors"
+                        "w-12 h-12",
+                        question.id === i + 1 &&
+                          "bg-purple-600 hover:bg-purple-700"
                       )}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
-                          {option.id}
-                        </span>
-                        <span className="text-gray-700">{option.text}</span>
-                      </div>
-                      <RadioGroupItem value={option.id} id={option.id} />
-                    </label>
+                      {i + 1}
+                    </Button>
                   ))}
-                </RadioGroup>
-              </div>
+                </div>
 
-              {isSubmitted && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    {isCorrect ? (
-                      <>
-                        <CheckCircle className="text-green-500" size={20} />
-                        <span className="font-medium text-green-600">
-                          Correct! Well done!
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="text-red-500" size={20} />
-                        <span className="font-medium text-red-600">
-                          {timeRemaining === 0
-                            ? "Time's up!"
-                            : "Incorrect. Try again!"}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <p className="mt-2 text-sm text-gray-600">
-                    {question.explanation}
+                <div className="mb-8">
+                  <p className="text-lg text-gray-800 whitespace-pre-line">
+                    {question.question}
                   </p>
                 </div>
-              )}
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!selectedAnswer || isSubmitted}
-                  className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
-                >
-                  Submit Answer
-                </Button>
-                <Button
-                  onClick={fetchQuestion}
-                  className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
-                >
-                  Next Question
-                </Button>
+                <div className="space-y-4 mb-8">
+                  <RadioGroup
+                    value={selectedAnswer}
+                    onValueChange={setSelectedAnswer}
+                    className="space-y-3"
+                    disabled={isSubmitted}
+                  >
+                    {question.options.map((option: any) => (
+                      <label
+                        key={option.id}
+                        onClick={() => handleAnswerClick(option.id)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-lg border",
+                          isSubmitted && option.id === question.correctAnswer
+                            ? "border-green-500 bg-green-50"
+                            : isSubmitted &&
+                              option.id === selectedAnswer &&
+                              !isCorrect
+                            ? "border-red-500 bg-red-50"
+                            : option.id === selectedAnswer
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
+                          "cursor-pointer transition-colors"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
+                            {option.id}
+                          </span>
+                          <span className="text-gray-700">{option.text}</span>
+                        </div>
+                        <RadioGroupItem value={option.id} id={option.id} />
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {isSubmitted && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      {isCorrect ? (
+                        <>
+                          <CheckCircle className="text-green-500" size={20} />
+                          <span className="font-medium text-green-600">
+                            Correct! Well done!
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="text-red-500" size={20} />
+                          <span className="font-medium text-red-600">
+                            {timeRemaining === 0
+                              ? "Time's up!"
+                              : "Incorrect. Try again!"}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {question.explanation}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!selectedAnswer || isSubmitted}
+                    className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                  >
+                    Submit Answer
+                  </Button>
+                  <Button
+                    onClick={fetchQuestion}
+                    className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                    disabled={isLoading}
+                  >
+                    Next Question
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
