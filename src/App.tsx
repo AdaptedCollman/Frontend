@@ -27,16 +27,12 @@ import Navbar from "./components/Navbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProfilePage from "./pages/ProfilePage";
 import ChatWizard from "./components/onboarding/ChatWizard";
+import SimulationPage from "./pages/SimulationPage";
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 const sidebarRoutes = [
@@ -50,79 +46,14 @@ const sidebarRoutes = [
 
 const AppContent = () => {
   const location = useLocation();
-  const showNavbar = !sidebarRoutes.some((route) => location.pathname.startsWith(route));
+  const showNavbar = !sidebarRoutes.some((route) =>
+    location.pathname.startsWith(route)
+  );
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <Router>
-          <div className="flex flex-col min-h-screen">
-            <main className="flex-grow">
-              <Routes>
-                {/* Public route */}
-                <Route path="/" element={<LandingPage />} />
-
-                {/* Protected routes */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/english"
-                  element={
-                    <ProtectedRoute>
-                      <EnglishQuizPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/math"
-                  element={
-                    <ProtectedRoute>
-                      <MathQuizPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/hebrew"
-                  element={
-                    <ProtectedRoute>
-                      <HebrewQuizPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/advisor"
-                  element={
-                    <ProtectedRoute>
-                      <ChatWizard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Fallback route */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </Router>
-      </ThemeProvider>
-    </AuthProvider>
     <div className="flex flex-col min-h-screen">
       {showNavbar && <Navbar />}
+
       <main className="flex-grow">
         <Routes>
           {/* Public route */}
@@ -173,6 +104,22 @@ const AppContent = () => {
             }
           />
           <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/advisor"
+            element={
+              <ProtectedRoute>
+                <ChatWizard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/learning-advisor"
             element={
               <ProtectedRoute>
@@ -180,11 +127,20 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/simulations"
+            element={
+              <ProtectedRoute>
+                <SimulationPage />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Fallback route */}
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
       <Footer />
     </div>
   );
@@ -192,9 +148,11 @@ const AppContent = () => {
 
 const App = () => (
   <AuthProvider>
-    <Router>
-      <AppContent />
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </ThemeProvider>
   </AuthProvider>
 );
 

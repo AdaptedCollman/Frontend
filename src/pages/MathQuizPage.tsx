@@ -12,8 +12,10 @@ const MathQuizPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchQuestion = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.post("http://localhost:3000/api/questions", {
         topic: "math",
@@ -39,6 +41,7 @@ const MathQuizPage = () => {
     } catch (err) {
       console.error("שגיאה בטעינת שאלה:", err);
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -79,115 +82,148 @@ const MathQuizPage = () => {
     }
   };
 
-  if (!question) return <div className="p-8">טוען שאלה...</div>;
-
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" dir="rtl">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Timer className="w-5 h-5" />
-                  <span className="font-medium">זמן שנותר:</span>
-                  <span className="font-mono">{formatTime(timeRemaining)}</span>
-                </div>
-                <div className="text-left">
-                  <h2 className="text-lg font-bold text-gray-900">
-                    שאלה {question.id} מתוך {question.totalQuestions}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mb-8 text-right">
-                <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
-                  {question.question}
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <RadioGroup
-                  value={selectedAnswer}
-                  onValueChange={setSelectedAnswer}
-                  className="space-y-3"
-                  disabled={isSubmitted}
-                >
-                  {question.options.map((option: any) => (
-                    <label
-                      key={option.id}
-                      onClick={() => handleAnswerClick(option.id)}
-                      className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border",
-                        isSubmitted && option.id === question.correctAnswer
-                          ? "border-green-500 bg-green-50"
-                          : isSubmitted &&
-                            option.id === selectedAnswer &&
-                            !isCorrect
-                          ? "border-red-500 bg-red-50"
-                          : option.id === selectedAnswer
-                          ? "border-purple-500 bg-purple-50"
-                          : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
-                        "cursor-pointer transition-colors"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-700">{option.text}</span>
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
-                          {option.id}
-                        </span>
-                      </div>
-                      <RadioGroupItem value={option.id} id={option.id} />
-                    </label>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {isSubmitted && (
-                <div className="mb-6 text-right">
-                  <div className="flex items-center gap-2 mb-2 justify-end">
-                    {isCorrect ? (
-                      <>
-                        <span className="font-medium text-green-600">
-                          תשובה נכונה! כל הכבוד
-                        </span>
-                        <CheckCircle className="text-green-500" size={20} />
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-medium text-red-600">
-                          {timeRemaining === 0
-                            ? "נגמר הזמן"
-                            : "לא נכון. נסה שוב"}
-                        </span>
-                        <XCircle className="text-red-500" size={20} />
-                      </>
-                    )}
+        {isLoading || !question ? (
+          <div className="flex justify-center items-center h-full">
+            <svg
+              className="animate-spin h-12 w-12 text-purple-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              ></path>
+            </svg>
+          </div>
+        ) : (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                dir="rtl"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Timer className="w-5 h-5" />
+                    <span className="font-medium">זמן שנותר:</span>
+                    <span className="font-mono">
+                      {formatTime(timeRemaining)}
+                    </span>
                   </div>
-                  <p className="mt-2 text-sm text-gray-600">{question.explanation}</p>
+                  <div className="text-left">
+                    <h2 className="text-lg font-bold text-gray-900">
+                      שאלה {question.id} מתוך {question.totalQuestions}
+                    </h2>
+                  </div>
                 </div>
-              )}
 
-              <div className="flex flex-col sm:flex-row gap-4 text-left" dir="ltr">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!selectedAnswer || isSubmitted}
-                  className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                <div className="mb-8 text-right">
+                  <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
+                    {question.question}
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  <RadioGroup
+                    value={selectedAnswer}
+                    onValueChange={setSelectedAnswer}
+                    className="space-y-3"
+                    disabled={isSubmitted}
+                  >
+                    {question.options.map((option: any) => (
+                      <label
+                        key={option.id}
+                        onClick={() => handleAnswerClick(option.id)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-lg border",
+                          isSubmitted && option.id === question.correctAnswer
+                            ? "border-green-500 bg-green-50"
+                            : isSubmitted &&
+                              option.id === selectedAnswer &&
+                              !isCorrect
+                            ? "border-red-500 bg-red-50"
+                            : option.id === selectedAnswer
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
+                          "cursor-pointer transition-colors"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-700">{option.text}</span>
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
+                            {option.id}
+                          </span>
+                        </div>
+                        <RadioGroupItem value={option.id} id={option.id} />
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {isSubmitted && (
+                  <div className="mb-6 text-right">
+                    <div className="flex items-center gap-2 mb-2 justify-end">
+                      {isCorrect ? (
+                        <>
+                          <span className="font-medium text-green-600">
+                            תשובה נכונה! כל הכבוד
+                          </span>
+                          <CheckCircle className="text-green-500" size={20} />
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium text-red-600">
+                            {timeRemaining === 0
+                              ? "נגמר הזמן"
+                              : "לא נכון. נסה שוב"}
+                          </span>
+                          <XCircle className="text-red-500" size={20} />
+                        </>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {question.explanation}
+                    </p>
+                  </div>
+                )}
+
+                <div
+                  className="flex flex-col sm:flex-row gap-4 text-left"
+                  dir="ltr"
                 >
-                  שלח תשובה
-                </Button>
-                <Button
-                  onClick={fetchQuestion}
-                  className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
-                >
-                  שאלה הבאה
-                </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!selectedAnswer || isSubmitted}
+                    className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                  >
+                    submit answer
+                  </Button>
+                  <Button
+                    onClick={fetchQuestion}
+                    className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                    disabled={isLoading}
+                  >
+                    next question
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
