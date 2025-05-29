@@ -17,6 +17,10 @@ interface RegisterData {
 interface AuthResponse {
   token: string;
   user: {
+    profileImage: string | null | undefined;
+    hasCompletedOnboarding: boolean;
+    profileImage: string | null | undefined;
+    hasCompletedOnboarding: boolean;
     id: string;
     name: string;
     email: string;

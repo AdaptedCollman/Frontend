@@ -5,21 +5,28 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle, XCircle, Timer } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { useStats } from "@/context/StatsContext";
 
 const MathQuizPage = () => {
+  const { user } = useAuth();
+  const { refetchStats } = useStats();
+
   const [question, setQuestion] = useState<any | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
+  const [difficultyLevel, setDifficultyLevel] = useState(1);
 
   const fetchQuestion = async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
       const res = await axios.post("http://localhost:3000/api/questions", {
         topic: "math",
-        difficulty: 3,
+        difficulty: difficultyLevel + 2,
       });
 
       const q = res.data;
@@ -40,24 +47,29 @@ const MathQuizPage = () => {
       setTimeRemaining(60);
     } catch (err) {
       console.error("שגיאה בטעינת שאלה:", err);
+      setQuestion(null);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchQuestion();
-  }, []);
+  }, [user?.id, difficultyLevel]);
 
   useEffect(() => {
-    if (timeRemaining > 0 && !isSubmitted) {
+    if (timeRemaining > 0 && !isSubmitted && !isLoading) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => prev - 1);
       }, 1000);
       return () => clearInterval(timer);
-    } else if (timeRemaining === 0 && !isSubmitted) {
+    } else if (timeRemaining === 0 && !isSubmitted && !isLoading) {
       handleSubmit();
+      const nextQuestionTimer = setTimeout(() => {
+        handleNextQuestion();
+      }, 3000);
+      return () => clearTimeout(nextQuestionTimer);
     }
-  }, [timeRemaining, isSubmitted]);
+  }, [timeRemaining, isSubmitted, isLoading]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -67,13 +79,31 @@ const MathQuizPage = () => {
       .padStart(2, "0")}`;
   };
 
-  const handleSubmit = () => {
-    if (!selectedAnswer && timeRemaining === 0) {
-      setSelectedAnswer("");
-    }
+  const handleSubmit = async () => {
+    if (!selectedAnswer || isSubmitted || !question || !user?.id) return;
+
+    setIsSubmitted(true);
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
-    setIsSubmitted(true);
+
+    try {
+      const timeSpent = 60 - timeRemaining;
+
+      await axios.post("http://localhost:3001/api/user-stats/track-question", {
+        userId: user.id,
+        subject: "math",
+        correct: correct,
+        timeSpent: timeSpent,
+      });
+
+      refetchStats();
+
+      setDifficultyLevel((prev) =>
+        isCorrect ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
+      );
+    } catch (error) {
+      console.error("Failed to track question:", error);
+    }
   };
 
   const handleAnswerClick = (optionId: string) => {
@@ -82,144 +112,168 @@ const MathQuizPage = () => {
     }
   };
 
+  const handleNextQuestion = async () => {
+    setIsLoading(true);
+    setDifficultyLevel((prev) =>
+      isCorrect ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
+    );
+    await fetchQuestion();
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        {isLoading || !question ? (
-          <div className="flex justify-center items-center h-full">
-            <svg
-              className="animate-spin h-12 w-12 text-purple-600"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8z"
-              ></path>
-            </svg>
+        {isLoading ? (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-center items-center h-64">
+                <svg
+                  className="animate-spin h-12 w-12 text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        ) : !question ? (
+          <div className="flex h-screen bg-gray-50">
+            <Sidebar />
+            <main className="flex-1 flex justify-center items-center">
+              <div className="text-xl font-semibold text-red-600">
+                Failed to load question. Please try again.
+              </div>
+            </main>
           </div>
         ) : (
           <div className="p-8">
-            <div className="max-w-4xl mx-auto">
-              <div
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-                dir="rtl"
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Timer className="w-5 h-5" />
-                    <span className="font-medium">זמן שנותר:</span>
-                    <span className="font-mono">
-                      {formatTime(timeRemaining)}
-                    </span>
-                  </div>
-                  <div className="text-left">
-                    <h2 className="text-lg font-bold text-gray-900">
-                      שאלה {question.id} מתוך {question.totalQuestions}
-                    </h2>
-                  </div>
+            <div
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+              dir="rtl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Timer className="w-5 h-5" />
+                  <span className="font-medium">זמן שנותר:</span>
+                  <span className="font-mono">{formatTime(timeRemaining)}</span>
                 </div>
+                <div className="text-left">
+                  <h2 className="text-lg font-bold text-gray-900">
+                    שאלה {question.id} מתוך {question.totalQuestions}
+                    <span className="mr-2 text-sm font-normal text-purple-600">
+                      (רמה {difficultyLevel})
+                    </span>
+                  </h2>
+                </div>
+              </div>
 
-                <div className="mb-8 text-right">
-                  <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
-                    {question.question}
+              <div className="mb-8 text-right">
+                <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
+                  {question.question}
+                </p>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <RadioGroup
+                  value={selectedAnswer}
+                  onValueChange={setSelectedAnswer}
+                  className="space-y-3"
+                  disabled={isSubmitted}
+                >
+                  {question.options.map((option: any) => (
+                    <label
+                      key={option.id}
+                      onClick={() => handleAnswerClick(option.id)}
+                      className={cn(
+                        "flex items-center justify-between p-4 rounded-lg border",
+                        isSubmitted && option.id === question.correctAnswer
+                          ? "border-green-500 bg-green-50"
+                          : isSubmitted &&
+                            option.id === selectedAnswer &&
+                            !isCorrect
+                          ? "border-red-500 bg-red-50"
+                          : option.id === selectedAnswer
+                          ? "border-purple-500 bg-purple-50"
+                          : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
+                        "cursor-pointer transition-colors"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
+                          {option.id}
+                        </span>
+                        <span className="text-gray-700">{option.text}</span>
+                      </div>
+                      <RadioGroupItem value={option.id} id={option.id} />
+                    </label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {isSubmitted && (
+                <div className="mb-6 text-right">
+                  <div className="flex items-center gap-2 mb-2 justify-end">
+                    {isCorrect ? (
+                      <>
+                        <span className="font-medium text-green-600">
+                          תשובה נכונה! כל הכבוד
+                        </span>
+                        <CheckCircle className="text-green-500" size={20} />
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-red-600">
+                          {timeRemaining === 0
+                            ? "נגמר הזמן"
+                            : "לא נכון. נסה שוב"}
+                        </span>
+                        <XCircle className="text-red-500" size={20} />
+                      </>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600">
+                    {question.explanation}
                   </p>
                 </div>
+              )}
 
-                <div className="space-y-4 mb-8">
-                  <RadioGroup
-                    value={selectedAnswer}
-                    onValueChange={setSelectedAnswer}
-                    className="space-y-3"
-                    disabled={isSubmitted}
-                  >
-                    {question.options.map((option: any) => (
-                      <label
-                        key={option.id}
-                        onClick={() => handleAnswerClick(option.id)}
-                        className={cn(
-                          "flex items-center justify-between p-4 rounded-lg border",
-                          isSubmitted && option.id === question.correctAnswer
-                            ? "border-green-500 bg-green-50"
-                            : isSubmitted &&
-                              option.id === selectedAnswer &&
-                              !isCorrect
-                            ? "border-red-500 bg-red-50"
-                            : option.id === selectedAnswer
-                            ? "border-purple-500 bg-purple-50"
-                            : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
-                          "cursor-pointer transition-colors"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-700">{option.text}</span>
-                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
-                            {option.id}
-                          </span>
-                        </div>
-                        <RadioGroupItem value={option.id} id={option.id} />
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                {isSubmitted && (
-                  <div className="mb-6 text-right">
-                    <div className="flex items-center gap-2 mb-2 justify-end">
-                      {isCorrect ? (
-                        <>
-                          <span className="font-medium text-green-600">
-                            תשובה נכונה! כל הכבוד
-                          </span>
-                          <CheckCircle className="text-green-500" size={20} />
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-medium text-red-600">
-                            {timeRemaining === 0
-                              ? "נגמר הזמן"
-                              : "לא נכון. נסה שוב"}
-                          </span>
-                          <XCircle className="text-red-500" size={20} />
-                        </>
-                      )}
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600">
-                      {question.explanation}
-                    </p>
-                  </div>
-                )}
-
-                <div
-                  className="flex flex-col sm:flex-row gap-4 text-left"
-                  dir="ltr"
-                >
+              <div
+                className="flex flex-col sm:flex-row gap-4 text-left"
+                dir="ltr"
+              >
+                {!isSubmitted && (
                   <Button
                     onClick={handleSubmit}
-                    disabled={!selectedAnswer || isSubmitted}
+                    disabled={!selectedAnswer || isLoading}
                     className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
                   >
                     submit answer
                   </Button>
+                )}
+                {isSubmitted && (
                   <Button
-                    onClick={fetchQuestion}
+                    onClick={handleNextQuestion}
                     className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
                     disabled={isLoading}
                   >
-                    next question
+                    שאלה הבאה
                   </Button>
-                </div>
+                )}
               </div>
             </div>
           </div>

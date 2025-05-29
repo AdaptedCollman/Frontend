@@ -10,6 +10,15 @@ interface User {
   profileImage?: string | null;
 }
 
+interface AuthResponseUser {
+  id: string;
+  name: string;
+  email: string;
+  hasCompletedOnboarding?: boolean;
+  currentLevel?: number;
+  profileImage?: string | null;
+}
+
 interface UpdateUserData {
   name?: string;
   profileImage?: string | null;
@@ -45,11 +54,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const storedUser = authService.getUser();
         if (storedUser && (await authService.verifyToken())) {
-          setUser({ ...storedUser, hasCompletedOnboarding: true });
+          setUser({
+            id: storedUser.id,
+            name: storedUser.name,
+            email: storedUser.email,
+            hasCompletedOnboarding: storedUser.hasCompletedOnboarding ?? false,
+            currentLevel: storedUser.currentLevel ?? 1,
+            profileImage: storedUser.profileImage,
+          });
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
         authService.logout();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -60,8 +77,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authService.login({ email, password });
-      setUser({ ...response.user, hasCompletedOnboarding: true });
+      const response: { user: AuthResponseUser } = await authService.login({
+        email,
+        password,
+      });
+      setUser({
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        hasCompletedOnboarding: response.user.hasCompletedOnboarding ?? false,
+        currentLevel: response.user.currentLevel ?? 1,
+        profileImage: response.user.profileImage,
+      });
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -75,13 +102,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     confirmPassword: string
   ) => {
     try {
-      const response = await authService.register({
+      const response: { user: AuthResponseUser } = await authService.register({
         name,
         email,
         password,
         confirmPassword,
       });
-      setUser({ ...response.user, hasCompletedOnboarding: true });
+      setUser({
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        hasCompletedOnboarding: response.user.hasCompletedOnboarding ?? false,
+        currentLevel: response.user.currentLevel ?? 1,
+        profileImage: response.user.profileImage,
+      });
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -97,7 +131,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await authService.completeOnboarding();
       setUser((prevUser) =>
-        prevUser ? { ...prevUser, hasCompletedOnboarding: true } : null
+        prevUser
+          ? {
+              ...prevUser,
+              hasCompletedOnboarding: true,
+            }
+          : null
       );
     } catch (error) {
       console.error("Complete onboarding error:", error);
@@ -107,8 +146,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateUser = async (data: UpdateUserData) => {
     try {
-      const updatedUser = await authService.updateUser(data);
-      setUser(updatedUser);
+      const updatedUser: AuthResponseUser = await authService.updateUser(data);
+      setUser({
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        hasCompletedOnboarding: updatedUser.hasCompletedOnboarding ?? false,
+        currentLevel: updatedUser.currentLevel ?? 1,
+        profileImage: updatedUser.profileImage,
+      });
     } catch (error) {
       console.error("Update user error:", error);
       throw error;

@@ -1,328 +1,406 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Button } from "../components/ui/button";
-import SubjectCard from "../components/dashboard/SubjectCard";
+import { Card, Typography, Box, LinearProgress } from "@mui/material";
 import {
-  Card,
-  Typography,
-  Box,
-  LinearProgress,
-  
-} from "@mui/material";
-import {
-  TrendingUp,
-  TrendingDown,
   Clock,
   Award,
-  Users,
-  
   ArrowRight,
   Languages,
   BookOpen,
   Calculator,
+  Star,
+  Target,
+  Brain,
 } from "lucide-react";
+import { useStats } from "../context/StatsContext";
+import { useAuth } from "../context/AuthContext";
+
+// Define the expected structure of the user stats data fetched from the backend
+interface SubjectStatsData {
+  questionsAnswered: number;
+  correctAnswers: number;
+  timeSpent: number; // Stored as number in backend
+  level: number;
+  progress: number;
+}
+
+interface UserStatsType {
+  userId: string;
+  subjects: {
+    english: SubjectStatsData;
+    hebrew: SubjectStatsData;
+    math: SubjectStatsData;
+  };
+  totalQuestions: number;
+  totalCorrect: number;
+  totalTimeSpent: number; // Stored as number in backend
+  weeklyStreak: number;
+}
+
+// Interface for how subject data is structured for display in this component
+interface SubjectStatsDisplay {
+  name: string;
+  key: keyof UserStatsType["subjects"];
+  icon: React.JSX.Element;
+  level: number;
+  progress: number;
+  questionsAnswered: number;
+  correctAnswers: number;
+  accuracy: string; // Calculated as a string for display
+  timeSpent: string; // Formatted as a string for display
+  color: string;
+  label: string;
+  path: string;
+}
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-
-  // Mock data (replace with real data later)
-  const stats = {
-    avgQuizScore: {
-      value: 85,
-      change: 5.2,
-      trend: "up",
-    },
-    timeSpent: {
-      total: "45h 30m",
-      weekly: "12h 15m",
-      change: 2.8,
-    },
-    weeklyStreak: {
-      days: 5,
-      total: 7,
-      change: -1,
-    },
-    globalRank: {
-      rank: 256,
-      percentile: 92,
-      change: 3.4,
-    },
+  const { user } = useAuth();
+  // Type the stats from useStats hook using the locally defined UserStatsType
+  const {
+    stats: userStats,
+    isLoading,
+    error,
+    refetchStats,
+  } = useStats() as {
+    stats: UserStatsType | null;
+    isLoading: boolean;
+    error: string | null;
+    refetchStats: () => Promise<void>;
   };
 
-  // Mock subject data
-  const subjects = [
+  const navigate = useNavigate();
+
+  // Add useEffect to fetch stats when component mounts or user changes
+  useEffect(() => {
+    if (user?.id) {
+      refetchStats();
+    }
+  }, [user?.id]); // Add user.id as a dependency
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 flex justify-center items-center">
+          <div className="text-xl font-semibold text-gray-700">Loading...</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 flex justify-center items-center">
+          <div className="text-xl font-semibold text-red-600">
+            Error loading dashboard: {error}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Explicitly check if userStats is null after loading/error handling.
+  // If it is, use default values instead of showing a message
+  const defaultStats: UserStatsType = {
+    userId: "",
+    subjects: {
+      english: {
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        timeSpent: 0,
+        level: 1,
+        progress: 0,
+      },
+      hebrew: {
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        timeSpent: 0,
+        level: 1,
+        progress: 0,
+      },
+      math: {
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        timeSpent: 0,
+        level: 1,
+        progress: 0,
+      },
+    },
+    totalQuestions: 0,
+    totalCorrect: 0,
+    totalTimeSpent: 0,
+    weeklyStreak: 0,
+  };
+
+  // Use defaultStats if userStats is null
+  console.log(userStats);
+  const stats = userStats || defaultStats;
+
+  // Updated formatTime to accept number, undefined, or null and return string
+  const formatTime = (seconds: number | undefined | null): string => {
+    if (seconds === undefined || seconds === null) return "0h 0m";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h}h ${m}m`;
+  };
+
+  // Prepare subject data using the non-null userStats and SubjectStatsDisplay type
+  const subjects: SubjectStatsDisplay[] = [
     {
       name: "Hebrew",
+      key: "hebrew",
       icon: <Languages className="text-blue-600" size={24} />,
-      level: "Intermediate",
-      progress: 65,
-      trend: {
-        value: 8.2,
-        direction: "up" as const,
-      },
-      action: {
-        label: "Continue Learning",
-        onClick: () => navigate("/subjects/hebrew"),
-      },
+      level: stats.subjects.hebrew?.level ?? 1,
+      progress: stats.subjects.hebrew?.progress ?? 0,
+      questionsAnswered: stats.subjects.hebrew?.questionsAnswered ?? 0,
+      correctAnswers: stats.subjects.hebrew?.correctAnswers ?? 0,
+      accuracy: stats.subjects.hebrew?.questionsAnswered
+        ? (
+            ((stats.subjects.hebrew.correctAnswers ?? 0) /
+              (stats.subjects.hebrew.questionsAnswered ?? 1)) *
+            100
+          ).toFixed(1)
+        : "0.0",
+      timeSpent: formatTime(stats.subjects.hebrew?.timeSpent ?? 0),
+      color: "#2563EB",
+      label: "Continue Learning",
+      path: "/hebrew",
     },
     {
       name: "English",
+      key: "english",
       icon: <BookOpen className="text-purple-600" size={24} />,
-      level: "Advanced",
-      progress: 82,
-      trend: {
-        value: 4.5,
-        direction: "up" as const,
-      },
-      action: {
-        label: "Practice Now",
-        onClick: () => navigate("/subjects/english"),
-      },
+      level: stats.subjects.english?.level ?? 1,
+      progress: stats.subjects.english?.progress ?? 0,
+      questionsAnswered: stats.subjects.english?.questionsAnswered ?? 0,
+      correctAnswers: stats.subjects.english?.correctAnswers ?? 0,
+      accuracy: stats.subjects.english?.questionsAnswered
+        ? (
+            ((stats.subjects.english.correctAnswers ?? 0) /
+              (stats.subjects.english.questionsAnswered ?? 1)) *
+            100
+          ).toFixed(1)
+        : "0.0",
+      timeSpent: formatTime(stats.subjects.english?.timeSpent ?? 0),
+      color: "#9333EA",
+      label: "Practice Now",
+      path: "/english",
     },
     {
       name: "Math",
+      key: "math",
       icon: <Calculator className="text-green-600" size={24} />,
-      level: "Beginner",
-      progress: 35,
-      trend: {
-        value: 2.1,
-        direction: "down" as const,
-      },
-      action: {
-        label: "Start Next Lesson",
-        onClick: () => navigate("/subjects/math"),
-      },
+      level: stats.subjects.math?.level ?? 1,
+      progress: stats.subjects.math?.progress ?? 0,
+      questionsAnswered: stats.subjects.math?.questionsAnswered ?? 0,
+      correctAnswers: stats.subjects.math?.correctAnswers ?? 0,
+      accuracy: stats.subjects.math?.questionsAnswered
+        ? (
+            ((stats.subjects.math.correctAnswers ?? 0) /
+              (stats.subjects.math.questionsAnswered ?? 1)) *
+            100
+          ).toFixed(1)
+        : "0.0",
+      timeSpent: formatTime(stats.subjects.math?.timeSpent ?? 0),
+      color: "#16A34A",
+      label: "Start Next Lesson",
+      path: "/math",
     },
   ];
 
-  // Mock onboarding status (replace with real data later)
-  const needsOnboarding = true;
+  // Calculate overall accuracy using the non-null userStats
+  const overallAccuracy = stats.totalQuestions
+    ? ((stats.totalCorrect / stats.totalQuestions) * 100).toFixed(1)
+    : "0.0";
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <Sidebar />
-
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
           <div className="flex justify-between items-center px-8 py-4">
             <Typography variant="h5" className="font-bold text-gray-900">
-              Dashboard
+              Learning Dashboard
             </Typography>
-            
           </div>
         </div>
 
-        {/* Main Grid */}
         <div className="p-8">
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(12, 1fr)",
-              gap: 4,
-            }}
-          >
-            {/* Stat Cards */}
-            <Box
-              sx={{ gridColumn: { xs: "span 12", md: "span 6", lg: "span 3" } }}
-            >
-              <Card className="p-6">
-                <div className="flex justify-between items-start mb-4">
+          <Box sx={{ display: "grid", gap: 4 }}>
+            {/* Overall Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Target className="text-blue-600" size={24} />
+                  </div>
                   <div>
-                    <Typography
-                      variant="subtitle2"
-                      className="text-gray-600 mb-1"
-                    >
-                      Avg Quiz Score
+                    <Typography variant="subtitle2" className="text-gray-600">
+                      Overall Accuracy
                     </Typography>
                     <Typography variant="h4" className="font-bold">
-                      {stats.avgQuizScore.value}%
+                      {overallAccuracy}%
                     </Typography>
                   </div>
-                  <div
-                    className={`flex items-center gap-1 ${
-                      stats.avgQuizScore.trend === "up"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {stats.avgQuizScore.trend === "up" ? (
-                      <TrendingUp size={20} />
-                    ) : (
-                      <TrendingDown size={20} />
-                    )}
-                    <span className="text-sm font-medium">
-                      {stats.avgQuizScore.change}%
-                    </span>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <Brain className="text-purple-600" size={24} />
+                  </div>
+                  <div>
+                    <Typography variant="subtitle2" className="text-gray-600">
+                      Questions Answered
+                    </Typography>
+                    <Typography variant="h4" className="font-bold">
+                      {stats.totalQuestions}
+                    </Typography>
                   </div>
                 </div>
-                <LinearProgress
-                  variant="determinate"
-                  value={stats.avgQuizScore.value}
-                  className="h-1.5 rounded-full"
-                  sx={{
-                    backgroundColor: "#E5E7EB",
-                    "& .MuiLinearProgress-bar": {
-                      backgroundColor: "#3461FF",
-                    },
-                  }}
-                />
               </Card>
-            </Box>
 
-            <Box
-              sx={{ gridColumn: { xs: "span 12", md: "span 6", lg: "span 3" } }}
-            >
-              <Card className="p-6">
-                <div className="flex justify-between items-start mb-4">
+              <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <Clock className="text-green-600" size={24} />
+                  </div>
                   <div>
-                    <Typography
-                      variant="subtitle2"
-                      className="text-gray-600 mb-1"
-                    >
+                    <Typography variant="subtitle2" className="text-gray-600">
                       Time Spent
                     </Typography>
                     <Typography variant="h4" className="font-bold">
-                      {stats.timeSpent.weekly}
+                      {formatTime(stats.totalTimeSpent)}
                     </Typography>
                   </div>
-                  <Clock size={24} className="text-purple-500" />
-                </div>
-                <Typography variant="body2" className="text-gray-500">
-                  Total: {stats.timeSpent.total}
-                </Typography>
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <TrendingUp size={16} />
-                  <span className="text-sm">+{stats.timeSpent.change}%</span>
                 </div>
               </Card>
-            </Box>
 
-            <Box
-              sx={{ gridColumn: { xs: "span 12", md: "span 6", lg: "span 3" } }}
-            >
-              <Card className="p-6">
-                <div className="flex justify-between items-start mb-4">
+              <Card className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-yellow-100 rounded-lg">
+                    <Award className="text-yellow-600" size={24} />
+                  </div>
                   <div>
-                    <Typography
-                      variant="subtitle2"
-                      className="text-gray-600 mb-1"
-                    >
+                    <Typography variant="subtitle2" className="text-gray-600">
                       Weekly Streak
                     </Typography>
                     <Typography variant="h4" className="font-bold">
-                      {stats.weeklyStreak.days}/{stats.weeklyStreak.total}
+                      {stats.weeklyStreak} days
                     </Typography>
                   </div>
-                  <Award size={24} className="text-yellow-500" />
-                </div>
-                <div className="flex gap-1 mt-2">
-                  {Array.from({ length: stats.weeklyStreak.total }).map(
-                    (_, i) => (
-                      <div
-                        key={i}
-                        className={`h-2 flex-1 rounded-full ${
-                          i < stats.weeklyStreak.days
-                            ? "bg-yellow-500"
-                            : "bg-gray-200"
-                        }`}
-                      />
-                    )
-                  )}
                 </div>
               </Card>
-            </Box>
+            </div>
 
-            <Box
-              sx={{ gridColumn: { xs: "span 12", md: "span 6", lg: "span 3" } }}
-            >
-              <Card className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <Typography
-                      variant="subtitle2"
-                      className="text-gray-600 mb-1"
-                    >
-                      Global Rank
-                    </Typography>
-                    <Typography variant="h4" className="font-bold">
-                      #{stats.globalRank.rank}
-                    </Typography>
-                  </div>
-                  <Users size={24} className="text-blue-500" />
-                </div>
-                <Typography variant="body2" className="text-gray-500">
-                  Top {stats.globalRank.percentile}th percentile
-                </Typography>
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <TrendingUp size={16} />
-                  <span className="text-sm">
-                    +{stats.globalRank.change} positions
-                  </span>
-                </div>
-              </Card>
-            </Box>
-
-            {/* Learning Sections */}
-            <Box sx={{ gridColumn: "span 12" }}>
-              <Typography variant="h6" className="font-bold text-gray-900 mb-4">
-                Learning Sections
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {subjects.map((subject) => (
-                  <SubjectCard key={subject.name} {...subject} />
-                ))}
-              </div>
-            </Box>
-
-            {/* Onboarding Card - Show only if needed */}
-            {needsOnboarding && (
-              <Box sx={{ gridColumn: "span 12" }}>
-                <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <Typography
-                        variant="h5"
-                        className="font-bold text-gray-900 mb-2"
-                      >
-                        Complete Your Learning Profile
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        className="text-gray-600 max-w-2xl"
-                      >
-                        Help us personalize your learning experience by
-                        answering a few quick questions
+            {/* Subject Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {subjects.map((subject) => (
+                <Card key={subject.name} className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      {subject.icon}
+                      <Typography variant="h6" className="font-bold">
+                        {subject.name}
                       </Typography>
                     </div>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={20}
+                          className={
+                            i < subject.level
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Progress</span>
+                        <span>{subject.progress}%</span>
+                      </div>
+                      <LinearProgress
+                        variant="determinate"
+                        value={subject.progress}
+                        className="h-2 rounded-full"
+                        sx={{
+                          backgroundColor: "#E5E7EB",
+                          "& .MuiLinearProgress-bar": {
+                            backgroundColor: subject.color,
+                          },
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <Typography
+                          variant="subtitle2"
+                          className="text-gray-600"
+                        >
+                          Questions
+                        </Typography>
+                        <Typography variant="h6" className="font-bold">
+                          {subject.questionsAnswered}
+                        </Typography>
+                      </div>
+                      <div>
+                        <Typography
+                          variant="subtitle2"
+                          className="text-gray-600"
+                        >
+                          Accuracy
+                        </Typography>
+                        <Typography variant="h6" className="font-bold">
+                          {subject.accuracy}%
+                        </Typography>
+                      </div>
+                      <div>
+                        <Typography
+                          variant="subtitle2"
+                          className="text-gray-600"
+                        >
+                          Time Spent
+                        </Typography>
+                        <Typography variant="h6" className="font-bold">
+                          {subject.timeSpent}
+                        </Typography>
+                      </div>
+                      <div>
+                        <Typography
+                          variant="subtitle2"
+                          className="text-gray-600"
+                        >
+                          Level
+                        </Typography>
+                        <Typography variant="h6" className="font-bold">
+                          {subject.level}/5
+                        </Typography>
+                      </div>
+                    </div>
+
                     <Button
-                      onClick={() => navigate("/onboarding")}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-5 rounded-lg shadow-sm"
+                      onClick={() => navigate(subject.path)}
+                      className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                     >
-                      <span>Start My Learning Profile Wizard</span>
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      {subject.label}
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 </Card>
-              </Box>
-            )}
-
-            {/* Chart Section - Placeholder for now */}
-            <Box sx={{ gridColumn: "span 12" }}>
-              <Card className="p-6">
-                <Typography variant="h6" className="mb-4">
-                  Monthly Progress
-                </Typography>
-                <div className="h-[300px] flex items-center justify-center bg-gray-50 rounded-lg">
-                  <Typography variant="body2" className="text-gray-500">
-                    Chart will be implemented in the next step
-                  </Typography>
-                </div>
-              </Card>
-            </Box>
+              ))}
+            </div>
           </Box>
         </div>
       </div>
