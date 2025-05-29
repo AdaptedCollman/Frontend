@@ -13,23 +13,21 @@ import MathQuizPage from "./pages/MathQuizPage";
 import HebrewQuizPage from "./pages/HebrewQuizPage";
 import Footer from "./components/Footer";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import Mission from "./pages/Mission";
-import HelpCenter from "./pages/HelpCenter";
-import Contact from "./pages/Contact";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Team from "./pages/Team";
-import Careers from "./pages/Careers";
-import FAQ from "./pages/FAQ";
-import Cookies from "./pages/Cookies";
+import Mission from "./pages/FooterPages/Mission";
+import HelpCenter from "./pages/FooterPages/HelpCenter";
+import Contact from "./pages/FooterPages/Contact";
+import Privacy from "./pages/FooterPages/Privacy";
+import Terms from "./pages/FooterPages/Terms";
+import Team from "./pages/FooterPages/Team";
+import Careers from "./pages/FooterPages/Careers";
+import FAQ from "./pages/FooterPages/FAQ";
+import Cookies from "./pages/FooterPages/Cookies";
 import LearningAdvisor from "./pages/LearningAdvisor";
 import Navbar from "./components/Navbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProfilePage from "./pages/ProfilePage";
-import ChatWizard from "./components/onboarding/ChatWizard";
 import SimulationPage from "./pages/SimulationPage";
 
-// Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
@@ -108,14 +106,6 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/advisor"
-            element={
-              <ProtectedRoute>
-                <ChatWizard />
               </ProtectedRoute>
             }
           />

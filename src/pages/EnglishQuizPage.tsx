@@ -5,21 +5,28 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle, XCircle, Timer } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { useStats } from "@/context/StatsContext";
 
 const EnglishQuizPage = () => {
+  const { user } = useAuth();
+  const { refetchStats } = useStats();
+
   const [question, setQuestion] = useState<any | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
+  const [difficultyLevel, setDifficultyLevel] = useState(1);
 
   const fetchQuestion = async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
       const res = await axios.post("http://localhost:3000/api/questions", {
         topic: "english",
-        difficulty: 3,
+        difficulty: difficultyLevel + 2,
       });
 
       const q = res.data;
@@ -40,24 +47,29 @@ const EnglishQuizPage = () => {
       setTimeRemaining(60);
     } catch (err) {
       console.error("Failed to fetch question:", err);
+      setQuestion(null);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchQuestion();
-  }, []);
+  }, [user?.id, difficultyLevel]);
 
   useEffect(() => {
-    if (timeRemaining > 0 && !isSubmitted) {
+    if (timeRemaining > 0 && !isSubmitted && !isLoading) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => prev - 1);
       }, 1000);
       return () => clearInterval(timer);
-    } else if (timeRemaining === 0 && !isSubmitted) {
+    } else if (timeRemaining === 0 && !isSubmitted && !isLoading) {
       handleSubmit();
+      const nextQuestionTimer = setTimeout(() => {
+        handleNextQuestion();
+      }, 3000);
+      return () => clearTimeout(nextQuestionTimer);
     }
-  }, [timeRemaining, isSubmitted]);
+  }, [timeRemaining, isSubmitted, isLoading]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -67,13 +79,51 @@ const EnglishQuizPage = () => {
       .padStart(2, "0")}`;
   };
 
-  const handleSubmit = () => {
-    if (!selectedAnswer && timeRemaining === 0) {
-      setSelectedAnswer("");
-    }
+  const handleSubmit = async () => {
+    if (!selectedAnswer || isSubmitted || !question || !user?.id) return;
+
+    setIsSubmitted(true);
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
-    setIsSubmitted(true);
+
+    try {
+      const timeSpent = 60 - timeRemaining;
+
+      // First, update the database
+      const response = await axios.post(
+        "http://localhost:3000/api/user-stats/track-question",
+        {
+          userId: user.id,
+          subject: "english",
+          correct: correct,
+          timeSpent: timeSpent,
+        }
+      );
+
+      if (!response.data) {
+        throw new Error("No response data received");
+      }
+
+      // Then, update the local stats
+      await refetchStats();
+
+      // Finally, update the difficulty level
+      setDifficultyLevel((prev) =>
+        correct ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
+      );
+    } catch (error) {
+      console.error("Failed to track question:", error);
+      // Show more detailed error message
+      if (axios.isAxiosError(error)) {
+        alert(
+          `Failed to save progress: ${
+            error.response?.data?.message || error.message
+          }`
+        );
+      } else {
+        alert("Failed to save your progress. Please try again.");
+      }
+    }
   };
 
   const handleAnswerClick = (optionId: string) => {
@@ -82,32 +132,53 @@ const EnglishQuizPage = () => {
     }
   };
 
+  const handleNextQuestion = async () => {
+    setIsLoading(true);
+    setDifficultyLevel((prev) =>
+      isCorrect ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
+    );
+    await fetchQuestion();
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        {isLoading || !question ? (
-          <div className="flex justify-center items-center h-full">
-            <svg
-              className="animate-spin h-12 w-12 text-purple-600"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8z"
-              ></path>
-            </svg>
+        {isLoading ? (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-center items-center h-64">
+                <svg
+                  className="animate-spin h-12 w-12 text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        ) : !question ? (
+          <div className="flex h-screen bg-gray-50">
+            <Sidebar />
+            <main className="flex-1 flex justify-center items-center">
+              <div className="text-xl font-semibold text-red-600">
+                Failed to load question. Please try again.
+              </div>
+            </main>
           </div>
         ) : (
           <div className="p-8">
@@ -124,24 +195,11 @@ const EnglishQuizPage = () => {
                   <div className="text-right">
                     <h2 className="text-lg font-bold text-gray-900">
                       Question {question.id} out of {question.totalQuestions}
+                      <span className="ml-2 text-sm font-normal text-purple-600">
+                        (Level {difficultyLevel})
+                      </span>
                     </h2>
                   </div>
-                </div>
-
-                <div className="flex justify-center gap-2 mb-8">
-                  {Array.from({ length: question.totalQuestions }, (_, i) => (
-                    <Button
-                      key={i + 1}
-                      variant={question.id === i + 1 ? "default" : "outline"}
-                      className={cn(
-                        "w-12 h-12",
-                        question.id === i + 1 &&
-                          "bg-purple-600 hover:bg-purple-700"
-                      )}
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
                 </div>
 
                 <div className="mb-8">
@@ -215,20 +273,24 @@ const EnglishQuizPage = () => {
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!selectedAnswer || isSubmitted}
-                    className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
-                  >
-                    Submit Answer
-                  </Button>
-                  <Button
-                    onClick={fetchQuestion}
-                    className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
-                    disabled={isLoading}
-                  >
-                    Next Question
-                  </Button>
+                  {!isSubmitted && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!selectedAnswer || isLoading}
+                      className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                    >
+                      Submit Answer
+                    </Button>
+                  )}
+                  {isSubmitted && (
+                    <Button
+                      onClick={handleNextQuestion}
+                      className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                      disabled={isLoading}
+                    >
+                      Next Question
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

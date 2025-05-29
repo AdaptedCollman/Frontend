@@ -1,7 +1,5 @@
 import React, { useRef, useState } from "react";
 import {
-  AppBar,
-  Toolbar,
   Button,
   Dialog,
   DialogTitle,
@@ -11,12 +9,6 @@ import {
   IconButton,
   Alert,
 } from "@mui/material";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useMotionTemplate,
-} from "framer-motion";
 import CloseIcon from "@mui/icons-material/Close";
 import HeroSection from "../components/sections/HeroSection";
 import HowItWorksSection from "../components/sections/HowItWorksSection";
@@ -25,7 +17,6 @@ import { useAuth } from "../context/AuthContext";
 
 const LandingPage = () => {
   const howItWorksRef = useRef<HTMLDivElement>(null);
-  const { scrollY } = useScroll();
   const [loginOpen, setLoginOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const { login, register } = useAuth();
@@ -52,33 +43,20 @@ const LandingPage = () => {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
 
-  // Navbar background opacity based on scroll
-  const navbarBg = useMotionTemplate`rgba(0, 0, 0, ${useTransform(
-    scrollY,
-    [0, 100],
-    [0.3, 0.8]
-  )})`;
+
 
   const scrollToHowItWorks = () => {
     howItWorksRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleLoginOpen = () => {
-    setLoginError("");
-    setLoginForm({ email: "", password: "" });
-    setLoginOpen(true);
-  };
+
 
   const handleLoginClose = () => {
     setLoginError("");
     setLoginOpen(false);
   };
 
-  const handleRegisterOpen = () => {
-    setRegisterError("");
-    setRegisterForm({ name: "", email: "", password: "", confirmPassword: "" });
-    setRegisterOpen(true);
-  };
+
 
   const handleRegisterClose = () => {
     setRegisterError("");
@@ -132,44 +110,6 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Semi-transparent Navbar */}
-      <motion.div
-        style={{ background: navbarBg }}
-        className="fixed top-0 left-0 right-0 z-50 transition-colors duration-200 backdrop-blur-sm"
-      >
-        <AppBar position="static" elevation={0} className="!bg-transparent">
-          <Toolbar className="container mx-auto px-4">
-            <div className="flex-grow">
-              <span className="text-2xl font-bold text-white">
-                Adapt<span className="text-[#3461FF]">ED</span>
-              </span>
-            </div>
-            <div className="hidden md:flex gap-4 items-center">
-              <Button
-                variant="contained"
-                className="!bg-[#3461FF] hover:!bg-blue-700 !px-6 !py-2"
-              >
-                START TEST
-              </Button>
-              <Button
-                variant="text"
-                onClick={handleLoginOpen}
-                className="!text-white !font-medium hover:!bg-white/10"
-              >
-                LOGIN
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={handleRegisterOpen}
-                className="!text-white !border-white hover:!bg-white/10"
-              >
-                REGISTER
-              </Button>
-            </div>
-          </Toolbar>
-        </AppBar>
-      </motion.div>
-
       {/* Hero Section */}
       <HeroSection onHowItWorksClick={scrollToHowItWorks} />
 
