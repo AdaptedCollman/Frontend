@@ -19,6 +19,7 @@ const HebrewQuizPage = () => {
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -45,6 +46,7 @@ const HebrewQuizPage = () => {
       setIsSubmitted(false);
       setIsCorrect(false);
       setTimeRemaining(60);
+      setQuestionStartTime(Date.now());
     } catch (err) {
       console.error("Failed to fetch question:", err);
       setQuestion(null);
@@ -87,22 +89,38 @@ const HebrewQuizPage = () => {
     setIsCorrect(correct);
 
     try {
-      const timeSpent = 60 - timeRemaining;
+      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
 
-      await axios.post("http://localhost:3001/api/user-stats/track-question", {
-        userId: user.id,
-        subject: "hebrew",
-        correct: correct,
-        timeSpent: timeSpent,
-      });
+      const response = await axios.post(
+        "http://localhost:3000/api/user-stats/track-question",
+        {
+          userId: user.id,
+          subject: "hebrew",
+          correct: correct,
+          timeSpent: timeSpent,
+        }
+      );
 
-      refetchStats();
+      if (!response.data) {
+        throw new Error("No response data received");
+      }
+
+      await refetchStats();
 
       setDifficultyLevel((prev) =>
-        isCorrect ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
+        correct ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
       );
     } catch (error) {
       console.error("Failed to track question:", error);
+      if (axios.isAxiosError(error)) {
+        alert(
+          `Failed to save progress: ${
+            error.response?.data?.message || error.message
+          }`
+        );
+      } else {
+        alert("Failed to save your progress. Please try again.");
+      }
     }
   };
 
