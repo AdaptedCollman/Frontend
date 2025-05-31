@@ -19,6 +19,7 @@ const EnglishQuizPage = () => {
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -45,6 +46,7 @@ const EnglishQuizPage = () => {
       setIsSubmitted(false);
       setIsCorrect(false);
       setTimeRemaining(60);
+      setQuestionStartTime(Date.now());
     } catch (err) {
       console.error("Failed to fetch question:", err);
       setQuestion(null);
@@ -87,7 +89,7 @@ const EnglishQuizPage = () => {
     setIsCorrect(correct);
 
     try {
-      const timeSpent = 60 - timeRemaining;
+      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
 
       // First, update the database
       const response = await axios.post(
