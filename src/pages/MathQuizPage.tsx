@@ -83,46 +83,56 @@ const MathQuizPage = () => {
 
   const handleSubmit = async () => {
     if (!selectedAnswer || isSubmitted || !question || !user?.id) return;
-
+  
     setIsSubmitted(true);
+  
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
-
+  
     try {
-      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
-
+      // ודא ש-questionStartTime מאותחל
+      const timeSpent = Math.max(1, Math.round((Date.now() - (questionStartTime || Date.now())) / 1000));
+  
+      const payload = {
+        userId: user.id,
+        subject: 'math',
+        correct,
+        timeSpent,
+      };
+  
+      console.log('[MathQuizPage] Submitting:', payload);
+  
       const response = await axios.post(
         "http://localhost:3000/api/user-stats/track-question",
-        {
-          userId: user.id,
-          subject: "math",
-          correct: correct,
-          timeSpent: timeSpent,
-        }
+        payload
       );
-
+  
+      console.log('[MathQuizPage] Backend response:', response.data);
+  
       if (!response.data) {
         throw new Error("No response data received");
       }
-
+  
+      // ודא ש-refetchStats מחזיר נתונים לדשבורד
       await refetchStats();
-
+  
+      // עדכון רמת קושי
       setDifficultyLevel((prev) =>
         correct ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
       );
+  
     } catch (error) {
       console.error("Failed to track question:", error);
       if (axios.isAxiosError(error)) {
         alert(
-          `Failed to save progress: ${
-            error.response?.data?.message || error.message
-          }`
+          `Failed to save progress: ${error.response?.data?.message || error.message}`
         );
       } else {
         alert("Failed to save your progress. Please try again.");
       }
     }
   };
+  
 
   const handleAnswerClick = (optionId: string) => {
     if (!isSubmitted) {

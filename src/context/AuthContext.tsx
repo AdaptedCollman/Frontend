@@ -50,29 +50,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const storedUser = authService.getUser();
-        if (storedUser && (await authService.verifyToken())) {
-          setUser({
-            id: storedUser.id,
-            name: storedUser.name,
-            email: storedUser.email,
-            hasCompletedOnboarding: storedUser.hasCompletedOnboarding ?? false,
-            currentLevel: storedUser.currentLevel ?? 1,
-            profileImage: storedUser.profileImage,
-          });
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        authService.logout();
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initAuth();
+    // TEMP: Hardcode a test user for debugging
+    setUser({
+      id: "testuserid123",
+      name: "Test User",
+      email: "test@example.com",
+      hasCompletedOnboarding: true,
+      currentLevel: 1,
+      profileImage: null,
+    });
+    setIsLoading(false);
+    // --- END TEMP FIX ---
+    // Comment out the rest of initAuth for now
+    // const initAuth = async () => {
+    //   try {
+    //     const storedUser = authService.getUser();
+    //     if (storedUser && (await authService.verifyToken())) {
+    //       setUser({
+    //         id: storedUser.id,
+    //         name: storedUser.name,
+    //         email: storedUser.email,
+    //         hasCompletedOnboarding: storedUser.hasCompletedOnboarding ?? false,
+    //         currentLevel: storedUser.currentLevel ?? 1,
+    //         profileImage: storedUser.profileImage,
+    //       });
+    //       console.log('[AuthContext] User loaded:', storedUser);
+    //     } else {
+    //       setUser(null);
+    //       console.log('[AuthContext] No user found in storage or token invalid');
+    //     }
+    //   } catch (error) {
+    //     console.error("Auth initialization error:", error);
+    //     authService.logout();
+    //     setUser(null);
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // };
+    // initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
