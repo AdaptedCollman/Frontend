@@ -41,32 +41,43 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = async () => {
-    if (!user?.id) {
+    const url = `http://localhost:3000/api/user-stats/${user?.id}`;
+    console.log('Fetching stats for user:', user?.id, 'URL:', url);
+    if (!user || !user.id) {
       setIsLoading(false);
       return;
     }
-
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get(
-        `http://localhost:3000/api/user-stats/${user.id}`
-      );
-      setStats(response.data);
-    } catch (err) {
-      console.error("Stats error:", err);
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Failed to fetch stats");
+      const response = await axios.get(url);
+      console.log('Stats response:', response);
+      if (!response.data || !response.data.userId || !response.data.subjects) {
+        console.error('[StatsContext] Invalid stats response:', response.data);
+        setStats(null);
+        setError('No stats data received from backend.');
       } else {
-        setError("An unknown error occurred");
+        setStats(response.data);
+        setError(null);
+        console.log('[StatsContext] Stats set:', response.data);
       }
+    } catch (err) {
+      console.error('[StatsContext] Axios error:', err);
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || err.message || 'Failed to fetch stats (axios error)');
+      } else {
+        setError('Failed to fetch stats (unknown error)');
+      }
+      setStats(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    if (user && user.id) {
+      fetchStats();
+    }
   }, [user?.id]);
 
   return (

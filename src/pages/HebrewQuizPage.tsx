@@ -90,23 +90,22 @@ const HebrewQuizPage = () => {
 
     try {
       const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
-
+      const payload = {
+        userId: user.id,
+        subject: 'hebrew',
+        correct: correct,
+        timeSpent: timeSpent,
+      };
+      console.log('[HebrewQuizPage] Submitting:', payload);
       const response = await axios.post(
         "http://localhost:3000/api/user-stats/track-question",
-        {
-          userId: user.id,
-          subject: "hebrew",
-          correct: correct,
-          timeSpent: timeSpent,
-        }
+        payload
       );
-
+      console.log('[HebrewQuizPage] Backend response:', response.data);
       if (!response.data) {
         throw new Error("No response data received");
       }
-
       await refetchStats();
-
       setDifficultyLevel((prev) =>
         correct ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
       );

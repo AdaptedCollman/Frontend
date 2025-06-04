@@ -79,32 +79,20 @@ const Dashboard = () => {
     }
   }, [user?.id]); // Add user.id as a dependency
 
-  if (isLoading) {
+  if (!user || !user.id) {
     return (
       <div className="flex h-screen bg-gray-50">
         <Sidebar />
         <main className="flex-1 flex justify-center items-center">
-          <div className="text-xl font-semibold text-gray-700">Loading...</div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex justify-center items-center">
-          <div className="text-xl font-semibold text-red-600">
-            Error loading dashboard: {error}
+          <div className="text-xl font-semibold text-gray-700">
+            Loading user...
           </div>
         </main>
       </div>
     );
   }
 
-  // Explicitly check if userStats is null after loading/error handling.
-  // If it is, use default values instead of showing a message
+  // Use defaultStats if userStats is null
   const defaultStats: UserStatsType = {
     userId: "",
     subjects: {
@@ -136,13 +124,27 @@ const Dashboard = () => {
     weeklyStreak: 0,
   };
 
-  // Use defaultStats if userStats is null
-  console.log(userStats);
   const stats = userStats || defaultStats;
+
+  // Show error in dashboard area
+  let dashboardContent = null;
+  if (error) {
+    dashboardContent = (
+      <div className="text-xl font-semibold text-red-600 text-center mt-8">
+        Error loading dashboard: {error}
+      </div>
+    );
+  } else if (isLoading) {
+    dashboardContent = (
+      <div className="flex justify-center items-center h-32">
+        <div className="text-xl font-semibold text-gray-700">Loading stats...</div>
+      </div>
+    );
+  }
 
   // Updated formatTime to accept number, undefined, or null and return string
   const formatTime = (seconds: number | undefined | null): string => {
-    if (seconds === undefined || seconds === null) return "0h 0m";
+    if (typeof seconds !== 'number' || isNaN(seconds) || seconds <= 0) return "0h 0m";
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
