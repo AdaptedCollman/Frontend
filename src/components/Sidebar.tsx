@@ -57,13 +57,13 @@ const Sidebar = () => {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800",
+        "flex flex-col h-screen bg-gray-900 dark:bg-gray-900 border-r border-gray-800 dark:border-gray-800",
         "sticky top-0 z-30 transition-all duration-300",
         isCollapsed ? "w-[70px]" : "w-[250px]"
       )}
     >
       {/* Logo and collapse button */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-gray-800 dark:border-gray-800">
         {!isCollapsed && (
           <div className="flex items-center">
             <span className="text-xl font-bold text-white hover:text-blue-400 transition-colors duration-300">
@@ -73,7 +73,7 @@ const Sidebar = () => {
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-800"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <Menu size={20} className="text-white" />
@@ -96,7 +96,7 @@ const Sidebar = () => {
 
       {/* User Profile */}
       <Link to="/profile">
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <div className="p-4 border-t border-gray-800 dark:border-gray-800 hover:bg-gray-800 dark:hover:bg-gray-800 transition-colors">
           <div
             className={cn(
               "flex items-center gap-3",
@@ -110,10 +110,10 @@ const Sidebar = () => {
             </Avatar>
             {!isCollapsed && (
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                <p className="text-sm font-medium text-gray-100 dark:text-gray-100 truncate">
                   {user?.name || "User Name"}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <p className="text-xs text-gray-400 dark:text-gray-400 truncate">
                   {user?.email || "user@example.com"}
                 </p>
               </div>

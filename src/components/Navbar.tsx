@@ -99,8 +99,9 @@ const Navbar: React.FC = () => {
   };
 
   // Hide navbar in certain routes if needed
-  const hideNavbar = ["/dashboard"].includes(location.pathname);
+  const hideNavbar = ["/dashboard"].includes(location.pathname) || ["/profile"].includes(location.pathname);
   if (hideNavbar) return null;
+
 
   return (
     <motion.div
