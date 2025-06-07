@@ -15,6 +15,15 @@ import {
   Brain,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -24,6 +33,7 @@ const Dashboard = () => {
     averageScore: string;
     totalQuestions: number;
     averageDuration: string;
+    scores: number[];
   } | null>(null);
 
   useEffect(() => {
@@ -52,6 +62,12 @@ const Dashboard = () => {
     );
   }
 
+  const scoresData =
+    testStats?.scores.map((score, i) => ({
+      name: `Test ${i + 1}`,
+      score,
+    })) || [];
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -67,8 +83,7 @@ const Dashboard = () => {
         <div className="p-8">
           <Box sx={{ display: "grid", gap: 4 }}>
             {/* Overall Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
+            <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-blue-100 rounded-lg">
@@ -116,13 +131,36 @@ const Dashboard = () => {
                   </div>
                 </div>
               </Card>
-
-              
             </div>
 
-            {/* Subject Cards - לא בשימוש כרגע כי אין פילוח לפי מקצוע */}
+            {/* Score Chart */}
+            {scoresData.length > 0 && (
+              <div className="w-full h-64 my-10 bg-white rounded-lg shadow">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={scoresData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="#6366F1"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Subject Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {["Hebrew", "English", "Math"].map((name, index) => {
+              {["Hebrew", "English", "Math"].map((name) => {
                 const icon =
                   name === "Hebrew" ? (
                     <Languages className="text-blue-600" size={24} />
@@ -131,13 +169,6 @@ const Dashboard = () => {
                   ) : (
                     <Calculator className="text-green-600" size={24} />
                   );
-
-                const color =
-                  name === "Hebrew"
-                    ? "#2563EB"
-                    : name === "English"
-                    ? "#9333EA"
-                    : "#16A34A";
 
                 return (
                   <Card key={name} className="p-6">
@@ -150,17 +181,12 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            size={20}
-                            className="text-gray-300"
-                          />
+                          <Star key={i} size={20} className="text-gray-300" />
                         ))}
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      
                       <button
                         onClick={() => navigate(`/${name.toLowerCase()}`)}
                         className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg flex justify-center items-center gap-2"
