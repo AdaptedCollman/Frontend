@@ -59,43 +59,57 @@ const SimulationPage: React.FC = () => {
     createTest();
   }, []);
 
-  useEffect(() => {
-    const fetchQuestion = async () => {
-      setIsLoading(true);
-      try {
-        const chapter = CHAPTERS[currentChapter];
-        if (!questions[currentChapter][currentQuestion]) {
-          const res = await axios.post("http://localhost:3000/api/questions", {
-            topic: chapter.topic,
-            difficulty: 3,
-          });
-          const q = res.data;
-          const newQ: Question = {
-            id: `${currentChapter}-${currentQuestion}`,
-            question: q.content,
-            options: q.answerOptions.map((text: string, idx: number) => ({
-              id: (idx + 1).toString(),
-              text,
-            })),
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
-          };
-          setQuestions((prev) => {
-            const updated = prev.map((arr) => [...arr]);
-            updated[currentChapter][currentQuestion] = newQ;
-            return updated;
-          });
-        }
-      } catch (err) {
-        console.error("Failed to fetch question:", err);
+useEffect(() => {
+  const fetchQuestion = async () => {
+    setIsLoading(true);
+    try {
+      const chapter = CHAPTERS[currentChapter];
+      if (!questions[currentChapter][currentQuestion]) {
+        const res = await axios.post("http://localhost:3000/api/questions", {
+          topic: chapter.topic,
+          difficulty: 3,
+        });
+        const q = res.data;
+
+        // המרה של תשובות לפורמט עם id + text
+        const options = q.answerOptions.map((text: string, idx: number) => ({
+          id: (idx + 1).toString(),
+          text,
+        }));
+
+        // מציאת האינדקס של התשובה הנכונה לפי הטקסט שלה
+        const correctIndex = q.answerOptions.findIndex(
+          (text: string) => text === q.correctAnswer
+        );
+
+        const correctAnswerId = (correctIndex + 1).toString(); // המרה ל-id
+
+        const newQ: Question = {
+          id: `${currentChapter}-${currentQuestion}`,
+          question: q.content,
+          options,
+          correctAnswer: correctAnswerId,
+          explanation: q.explanation,
+        };
+
+        setQuestions((prev) => {
+          const updated = prev.map((arr) => [...arr]);
+          updated[currentChapter][currentQuestion] = newQ;
+          return updated;
+        });
       }
-      setIsLoading(false);
-    };
-    fetchQuestion();
+    } catch (err) {
+      console.error("Failed to fetch question:", err);
+    }
+    setIsLoading(false);
     setSelectedAnswer("");
     setIsSubmitted(false);
     setIsCorrect(false);
-  }, [currentChapter, currentQuestion]);
+  };
+
+  fetchQuestion();
+}, [currentChapter, currentQuestion]);
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
