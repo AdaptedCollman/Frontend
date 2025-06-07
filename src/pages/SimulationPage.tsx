@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -22,6 +22,8 @@ interface Question {
 const SimulationPage: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
+    const hasCreatedTest = useRef(false);
+
 
   const [currentChapter, setCurrentChapter] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -56,7 +58,11 @@ const SimulationPage: React.FC = () => {
         console.error("Failed to create test:", err);
       }
     };
-    createTest();
+
+    if (!hasCreatedTest.current) {
+      hasCreatedTest.current = true;
+      createTest();
+    }
   }, []);
 
 useEffect(() => {
