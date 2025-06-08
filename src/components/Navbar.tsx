@@ -18,7 +18,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar: React.FC = () => {
   const { scrollY } = useScroll();
-  const { login, register } = useAuth();
+  const { login, register,isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -99,7 +99,7 @@ const Navbar: React.FC = () => {
   };
 
   // Hide navbar in certain routes if needed
-  const hideNavbar = ["/dashboard"].includes(location.pathname);
+  const hideNavbar = isAuthenticated || ["/dashboard"].includes(location.pathname);
   if (hideNavbar) return null;
 
   return (
