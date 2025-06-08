@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import NavItem from "./navigation/NavItem";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import axios from "../utils/axios";
 
 const navItems = [
   {
@@ -125,7 +126,7 @@ const Sidebar = () => {
       {/* Logout Button */}
       <button
         onClick={async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
+          await axios.post("/api/auth/logout");
           logout();
           navigate("/");
         }}
