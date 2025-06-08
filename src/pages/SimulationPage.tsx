@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const CHAPTERS = [
   { label: "English", topic: "english", count: 22 },
   { label: "Hebrew", topic: "hebrew", count: 23 },
   { label: "Math", topic: "math", count: 20 },
 ];
-const SIMULATION_TIME = 60 * 60; // 1 hour in seconds
+const SIMULATION_TIME = 60 * 60;
 
 interface Question {
   id: string;
@@ -15,9 +16,15 @@ interface Question {
   options: { id: string; text: string }[];
   correctAnswer: string;
   explanation: string;
+  selectedAnswer?: string;
 }
 
 const SimulationPage: React.FC = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
+    const hasCreatedTest = useRef(false);
+
+
   const [currentChapter, setCurrentChapter] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [questions, setQuestions] = useState<Question[][]>([[], [], []]);
@@ -26,8 +33,9 @@ const SimulationPage: React.FC = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [testId, setTestId] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
-  // Timer logic
   useEffect(() => {
     if (timer > 0) {
       const interval = setInterval(() => setTimer((t) => t - 1), 1000);
@@ -35,58 +43,132 @@ const SimulationPage: React.FC = () => {
     }
   }, [timer]);
 
-  // Fetch question if not already loaded
   useEffect(() => {
-    const fetchQuestion = async () => {
-      setIsLoading(true);
+    const createTest = async () => {
       try {
-        const chapter = CHAPTERS[currentChapter];
-        if (!questions[currentChapter][currentQuestion]) {
-          const res = await axios.post("http://localhost:3000/api/questions", {
-            topic: chapter.topic,
-            difficulty: 3,
-          });
-          const q = res.data;
-          const newQ: Question = {
-            id: `${currentChapter}-${currentQuestion}`,
-            question: q.content,
-            options: q.answerOptions.map((text: string, idx: number) => ({
-              id: (idx + 1).toString(),
-              text,
-            })),
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
-          };
-          setQuestions((prev) => {
-            const updated = prev.map((arr) => [...arr]);
-            updated[currentChapter][currentQuestion] = newQ;
-            return updated;
-          });
-        }
+        const res = await axios.post("http://localhost:3000/api/tests", {
+          userId,
+          numQuestions: 66,
+          topics: ["english", "hebrew", "math"],
+          difficulty: 3,
+        });
+        setTestId(res.data.testId);
+        setStartTime(new Date());
       } catch (err) {
-        console.error("Failed to fetch question:", err);
+        console.error("Failed to create test:", err);
       }
-      setIsLoading(false);
     };
-    fetchQuestion();
+
+    if (!hasCreatedTest.current) {
+      hasCreatedTest.current = true;
+      createTest();
+    }
+  }, []);
+
+useEffect(() => {
+  const fetchQuestion = async () => {
+    setIsLoading(true);
+    try {
+      const chapter = CHAPTERS[currentChapter];
+      if (!questions[currentChapter][currentQuestion]) {
+        const res = await axios.post("http://localhost:3000/api/questions", {
+          topic: chapter.topic,
+          difficulty: 3,
+        });
+        const q = res.data;
+
+        // המרה של תשובות לפורמט עם id + text
+        const options = q.answerOptions.map((text: string, idx: number) => ({
+          id: (idx + 1).toString(),
+          text,
+        }));
+
+        // מציאת האינדקס של התשובה הנכונה לפי הטקסט שלה
+        const correctIndex = q.answerOptions.findIndex(
+          (text: string) => text === q.correctAnswer
+        );
+
+        const correctAnswerId = (correctIndex + 1).toString(); // המרה ל-id
+
+        const newQ: Question = {
+          id: `${currentChapter}-${currentQuestion}`,
+          question: q.content,
+          options,
+          correctAnswer: correctAnswerId,
+          explanation: q.explanation,
+        };
+
+        setQuestions((prev) => {
+          const updated = prev.map((arr) => [...arr]);
+          updated[currentChapter][currentQuestion] = newQ;
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch question:", err);
+    }
+    setIsLoading(false);
     setSelectedAnswer("");
     setIsSubmitted(false);
     setIsCorrect(false);
-  }, [currentChapter, currentQuestion]);
+  };
+
+  fetchQuestion();
+}, [currentChapter, currentQuestion]);
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleSubmit = () => {
     const q = questions[currentChapter][currentQuestion];
     if (!q) return;
-    setIsCorrect(selectedAnswer === q.correctAnswer);
+    const isAnswerCorrect = selectedAnswer === q.correctAnswer;
+    setIsCorrect(isAnswerCorrect);
     setIsSubmitted(true);
+
+    setQuestions((prev) => {
+      const updated = prev.map((chapter, chIdx) =>
+        chapter.map((qItem, qIdx) => {
+          if (chIdx === currentChapter && qIdx === currentQuestion) {
+            return { ...qItem, selectedAnswer };
+          }
+          return qItem;
+        })
+      );
+      return updated;
+    });
+  };
+
+  const finishSimulation = async () => {
+    const totalQuestions = CHAPTERS.reduce((sum, ch) => sum + ch.count, 0);
+    let correct = 0;
+
+    questions.forEach((chapter) => {
+      chapter.forEach((q) => {
+        if (q && q.selectedAnswer === q.correctAnswer) {
+          correct++;
+        }
+      });
+    });
+
+    const score = Math.round((correct / totalQuestions) * 100);
+    const duration = startTime
+      ? Math.floor((new Date().getTime() - startTime.getTime()) / 1000)
+      : SIMULATION_TIME - timer;
+
+    try {
+      await axios.put(`http://localhost:3000/api/tests/${testId}/finish`, {
+        score,
+        duration,
+      });
+      alert(`Simulation finished!\nScore: ${score}\nTime: ${duration}s`);
+    } catch (err) {
+      console.error("Failed to finish test:", err);
+    }
   };
 
   const handleNext = () => {
@@ -96,7 +178,7 @@ const SimulationPage: React.FC = () => {
       setCurrentChapter((c) => c + 1);
       setCurrentQuestion(0);
     } else {
-      // Optionally show summary or finish
+      finishSimulation();
     }
   };
 
@@ -133,30 +215,13 @@ const SimulationPage: React.FC = () => {
             ))}
           </div>
           <div className="mb-4 text-gray-600">
-            Chapter {CHAPTERS[currentChapter].label} — Question{" "}
-            {currentQuestion + 1} of {CHAPTERS[currentChapter].count}
+            Chapter {CHAPTERS[currentChapter].label} — Question {currentQuestion + 1} of {CHAPTERS[currentChapter].count}
           </div>
           {isLoading || !q ? (
             <div className="flex justify-center items-center h-64">
-              <svg
-                className="animate-spin h-12 w-12 text-purple-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8z"
-                ></path>
+              <svg className="animate-spin h-12 w-12 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
               </svg>
             </div>
           ) : (
@@ -181,29 +246,21 @@ const SimulationPage: React.FC = () => {
                           : option.id === q.correctAnswer && isSubmitted
                           ? "bg-green-100 border-green-500"
                           : "bg-gray-50 border-gray-200"
-                      }
-                    `}
+                      }`
+                    }
                   >
                     {option.text}
                   </button>
                 ))}
               </div>
               {isSubmitted && (
-                <div
-                  className={`mt-4 p-4 rounded-lg ${
-                    isCorrect
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
+                <div className={`mt-4 p-4 rounded-lg ${
+                  isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                }`}>
                   {isCorrect
                     ? "Correct!"
-                    : `Incorrect. The correct answer is: ${
-                        q.options.find((o) => o.id === q.correctAnswer)?.text
-                      }`}
-                  <div className="mt-2 text-sm text-gray-600">
-                    {q.explanation}
-                  </div>
+                    : `Incorrect. The correct answer is: ${q.options.find((o) => o.id === q.correctAnswer)?.text}`}
+                  <div className="mt-2 text-sm text-gray-600">{q.explanation}</div>
                 </div>
               )}
               <div className="flex gap-4 mt-6">
