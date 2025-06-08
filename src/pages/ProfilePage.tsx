@@ -58,34 +58,39 @@ const ProfilePage = () => {
     setSelectedFile(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const updateData: UpdateUserData = {
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        phone: formData.phone,
-      };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+  try {
+    const updateData: UpdateUserData = {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      phone: formData.phone,
+    };
 
-      if (selectedFile) {
+    if (selectedFile) {
+      const base64String = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64String = reader.result as string;
-          await updateUser({
-            ...updateData,
-            profileImage: base64String,
-          });
+        reader.onloadend = () => {
+          resolve(reader.result as string);
         };
+        reader.onerror = reject;
         reader.readAsDataURL(selectedFile);
-      } else {
-        await updateUser(updateData);
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-    } finally {
-      setIsLoading(false);
+      });
+
+      await updateUser({
+        ...updateData,
+        profileImage: base64String,
+      });
+    } else {
+      await updateUser(updateData);
     }
-  };
+  } catch (error) {
+    console.error("Error updating profile:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="flex h-screen bg-gray-50">

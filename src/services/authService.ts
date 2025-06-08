@@ -14,19 +14,28 @@ interface RegisterData {
   confirmPassword: string;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  hasCompletedOnboarding?: boolean;
+  profileImage?: string | null;
+  currentLevel?: number;
+}
+
 interface AuthResponse {
   token: string;
   user: {
-    profileImage: string | null | undefined;
-    hasCompletedOnboarding: boolean;
-    profileImage: string | null | undefined;
-    hasCompletedOnboarding: boolean;
     id: string;
     name: string;
     email: string;
+    profileImage?: string | null;
+    hasCompletedOnboarding?: boolean;
+    currentLevel?: number;
   };
   message: string;
 }
+
 
 export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
@@ -42,18 +51,36 @@ export const authService = {
     }
   },
 
-  async login(data: LoginData): Promise<AuthResponse> {
-    try {
-      const response = await axios.post(`${API_URL}/login`, data);
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-      }
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Login failed");
+async login(data: LoginData): Promise<AuthResponse> {
+  try {
+    const response = await axios.post(`${API_URL}/login`, data);
+
+    console.log("✅ login response:", response.data);
+
+    const token = response.data.accessToken;
+    const user = response.data.user;
+
+    if (token && user) {
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      console.log("✅ token and user saved to localStorage");
+    } else {
+      console.warn("⚠️ Login response missing token or user");
     }
-  },
+
+    return {
+      token,
+      user,
+      message: response.data.message,
+    };
+  } catch (error: any) {
+    console.error("❌ Login error:", error.response?.data || error);
+    throw new Error(error.response?.data?.message || "Login failed");
+  }
+}
+
+
+,
 
   async verifyToken(): Promise<boolean> {
     try {
@@ -78,7 +105,7 @@ export const authService = {
     return localStorage.getItem("token");
   },
 
-  getUser(): any {
+  getUser(): User | null {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
   },
@@ -89,7 +116,11 @@ export const authService = {
 
   async completeOnboarding(): Promise<void> {
     try {
-      const response = await axios.post(`${API_URL}/complete-onboarding`);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_URL}/complete-onboarding`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
       }
@@ -103,13 +134,34 @@ export const authService = {
   async updateUser(data: {
     name?: string;
     profileImage?: string | null;
-  }): Promise<any> {
+    phone?: string;
+  }): Promise<User> {
     try {
-      const response = await axios.put(`${API_URL}/users/profile`, data);
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      if (!user.id) {
+        throw new Error("User ID is missing from localStorage");
+      }
+
+      const response = await axios.put(
+        `http://localhost:3000/api/users/${user.id}`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data) {
+        localStorage.setItem("user", JSON.stringify(response.data));
+      }
+
       return response.data;
     } catch (error) {
       console.error("Error updating user:", error);
       throw error;
     }
-  },
+  }
 };
