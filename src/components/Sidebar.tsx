@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import NavItem from "./navigation/NavItem";
 import { useAuth } from "@/context/AuthContext";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import axios from "../utils/axios";
 
 const navItems = [
@@ -105,6 +105,10 @@ const Sidebar = () => {
             )}
           >
             <Avatar className="w-8 h-8 bg-blue-600">
+              <AvatarImage
+                src={user?.profileImage || undefined}
+                alt="Profile"
+              />
               <AvatarFallback className="bg-blue-600 text-white">
                 {user?.name?.[0] || "U"}
               </AvatarFallback>

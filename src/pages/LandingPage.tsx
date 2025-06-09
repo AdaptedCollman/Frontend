@@ -43,20 +43,14 @@ const LandingPage = () => {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
 
-
-
   const scrollToHowItWorks = () => {
     howItWorksRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-
 
   const handleLoginClose = () => {
     setLoginError("");
     setLoginOpen(false);
   };
-
-
 
   const handleRegisterClose = () => {
     setRegisterError("");
@@ -72,8 +66,12 @@ const LandingPage = () => {
       await login(loginForm.email, loginForm.password);
       handleLoginClose();
       navigate("/dashboard");
-    } catch (error: any) {
-      setLoginError(error.message || "Login failed. Please try again.");
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again.";
+      setLoginError(errorMessage);
     } finally {
       setIsLoginLoading(false);
     }
@@ -91,18 +89,25 @@ const LandingPage = () => {
     }
 
     try {
+      // First register the user
       await register(
         registerForm.name,
         registerForm.email,
         registerForm.password,
         registerForm.confirmPassword
       );
+
+      // Then automatically log them in
+      await login(registerForm.email, registerForm.password);
+
       handleRegisterClose();
       navigate("/dashboard");
-    } catch (error: any) {
-      setRegisterError(
-        error.message || "Registration failed. Please try again."
-      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.";
+      setRegisterError(errorMessage);
     } finally {
       setIsRegisterLoading(false);
     }

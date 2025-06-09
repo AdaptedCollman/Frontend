@@ -24,7 +24,8 @@ interface User {
 }
 
 interface AuthResponse {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   user: {
     id: string;
     name: string;
@@ -36,13 +37,13 @@ interface AuthResponse {
   message: string;
 }
 
-
 export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
       const response = await axios.post(`${API_URL}/register`, data);
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+      if (response.data.accessToken && response.data.refreshToken) {
+        localStorage.setItem("accessToken", response.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.refreshToken);
         localStorage.setItem("user", JSON.stringify(response.data.user));
       }
       return response.data;
@@ -51,40 +52,59 @@ export const authService = {
     }
   },
 
-async login(data: LoginData): Promise<AuthResponse> {
-  try {
-    const response = await axios.post(`${API_URL}/login`, data);
+  async login(data: LoginData): Promise<AuthResponse> {
+    try {
+      const response = await axios.post(`${API_URL}/login`, data);
+      console.log("✅ login response:", response.data);
 
-    console.log("✅ login response:", response.data);
+      const { accessToken, refreshToken, user } = response.data;
 
-    const token = response.data.accessToken;
-    const user = response.data.user;
+      if (accessToken && refreshToken && user) {
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", refreshToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        console.log("✅ tokens and user saved to localStorage");
+      } else {
+        console.warn("⚠️ Login response missing tokens or user");
+      }
 
-    if (token && user) {
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      console.log("✅ token and user saved to localStorage");
-    } else {
-      console.warn("⚠️ Login response missing token or user");
+      return {
+        accessToken,
+        refreshToken,
+        user,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      console.error("❌ Login error:", error.response?.data || error);
+      throw new Error(error.response?.data?.message || "Login failed");
     }
+  },
 
-    return {
-      token,
-      user,
-      message: response.data.message,
-    };
-  } catch (error: any) {
-    console.error("❌ Login error:", error.response?.data || error);
-    throw new Error(error.response?.data?.message || "Login failed");
-  }
-}
+  async refreshAccessToken(): Promise<string | null> {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) return null;
 
+      const response = await axios.post(`${API_URL}/refresh-token`, {
+        refreshToken,
+      });
 
-,
+      const { accessToken } = response.data;
+      if (accessToken) {
+        localStorage.setItem("accessToken", accessToken);
+        return accessToken;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to refresh token:", error);
+      this.logout();
+      return null;
+    }
+  },
 
   async verifyToken(): Promise<boolean> {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       if (!token) return false;
 
       const response = await axios.get(`${API_URL}/verify`, {
@@ -97,12 +117,17 @@ async login(data: LoginData): Promise<AuthResponse> {
   },
 
   logout(): void {
-    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
   },
 
   getToken(): string | null {
-    return localStorage.getItem("token");
+    return localStorage.getItem("accessToken");
+  },
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem("refreshToken");
   },
 
   getUser(): User | null {
@@ -116,10 +141,14 @@ async login(data: LoginData): Promise<AuthResponse> {
 
   async completeOnboarding(): Promise<void> {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(`${API_URL}/complete-onboarding`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const token = localStorage.getItem("accessToken");
+      const response = await axios.post(
+        `${API_URL}/complete-onboarding`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -137,7 +166,7 @@ async login(data: LoginData): Promise<AuthResponse> {
     phone?: string;
   }): Promise<User> {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       if (!user.id) {
@@ -163,5 +192,5 @@ async login(data: LoginData): Promise<AuthResponse> {
       console.error("Error updating user:", error);
       throw error;
     }
-  }
+  },
 };
