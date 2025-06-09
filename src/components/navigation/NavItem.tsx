@@ -1,7 +1,8 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSimulation } from "@/context/SimulationContext";
 
 interface NavItemProps {
   icon: LucideIcon;
@@ -18,9 +19,22 @@ const NavItem: React.FC<NavItemProps> = ({
   isActive,
   isCollapsed,
 }) => {
+  const navigate = useNavigate();
+  const { isInSimulation, setShowNavigationModal, setPendingNavigation } =
+    useSimulation();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isInSimulation && !isActive) {
+      e.preventDefault();
+      setPendingNavigation(href);
+      setShowNavigationModal(true);
+    }
+  };
+
   return (
     <Link
       to={href}
+      onClick={handleClick}
       className={cn(
         "flex items-center gap-3 px-3 py-2 mx-2 rounded-lg transition-all duration-200",
         "hover:bg-gray-100 dark:hover:bg-gray-800",

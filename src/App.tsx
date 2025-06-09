@@ -27,6 +27,7 @@ import Navbar from "./components/Navbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProfilePage from "./pages/ProfilePage";
 import SimulationPage from "./pages/SimulationPage";
+import { SimulationProvider } from "./context/SimulationContext";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -138,11 +139,13 @@ const AppContent = () => {
 
 const App = () => (
   <AuthProvider>
-    <ThemeProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </ThemeProvider>
+    <SimulationProvider>
+      <ThemeProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ThemeProvider>
+    </SimulationProvider>
   </AuthProvider>
 );
 
