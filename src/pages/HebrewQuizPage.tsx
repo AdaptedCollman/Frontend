@@ -8,20 +8,36 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useStats } from "@/context/StatsContext";
 
+interface Option {
+  id: string;
+  text: string;
+}
+
+interface QuestionData {
+  id: number;
+  totalQuestions: number;
+  question: string;
+  options: Option[];
+  correctAnswer: string;
+  explanation: string;
+}
+
 const HebrewQuizPage = () => {
   const { user } = useAuth();
   const { refetchStats } = useStats();
 
-  const [question, setQuestion] = useState<any | null>(null);
+  const [question, setQuestion] = useState<QuestionData | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] = useState(false);
-
+  const [questionStartTime, setQuestionStartTime] = useState<number>(
+    Date.now()
+  );
+  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] =
+    useState(false);
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -34,20 +50,20 @@ const HebrewQuizPage = () => {
 
       const q = res.data;
       const correctIndex = q.answerOptions.findIndex(
-  (text: string) => text === q.correctAnswer
-);
-const correctAnswerId = (correctIndex + 1).toString();
+        (text: string) => text === q.correctAnswer
+      );
+      const correctAnswerId = (correctIndex + 1).toString();
       setQuestion({
-  id: 1,
-  totalQuestions: 1,
-  question: q.content,
-  options: q.answerOptions.map((text: string, index: number) => ({
-    id: (index + 1).toString(),
-    text,
-  })),
-  correctAnswer: correctAnswerId, 
-  explanation: q.explanation,
-});
+        id: 1,
+        totalQuestions: 1,
+        question: q.content,
+        options: q.answerOptions.map((text: string, index: number) => ({
+          id: (index + 1).toString(),
+          text,
+        })),
+        correctAnswer: correctAnswerId,
+        explanation: q.explanation,
+      });
 
       setSelectedAnswer("");
       setIsSubmitted(false);
@@ -67,20 +83,23 @@ const correctAnswerId = (correctIndex + 1).toString();
   }, [user?.id, difficultyLevel]);
 
   useEffect(() => {
-  if (timeRemaining > 0 && !isSubmitted && !isLoading) {
-    const timer = setInterval(() => {
-      setTimeRemaining((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }
+    if (timeRemaining > 0 && !isSubmitted && !isLoading) {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
 
-  if (timeRemaining === 0 && !isSubmitted && !isLoading && !hasSubmittedAutomatically) {
-    setHasSubmittedAutomatically(true);
-    handleSubmit();
-  }
-}, [timeRemaining, isSubmitted, isLoading, hasSubmittedAutomatically]);
-
-
+    if (
+      timeRemaining === 0 &&
+      !isSubmitted &&
+      !isLoading &&
+      !hasSubmittedAutomatically
+    ) {
+      setHasSubmittedAutomatically(true);
+      handleSubmit();
+    }
+  }, [timeRemaining, isSubmitted, isLoading, hasSubmittedAutomatically]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -93,30 +112,31 @@ const correctAnswerId = (correctIndex + 1).toString();
   const handleSubmit = async () => {
     if (isSubmitted || !question || !user?.id) return;
 
-
     setIsSubmitted(true);
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
 
     try {
-      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
+      const timeSpent = Math.max(
+        1,
+        Math.round((Date.now() - questionStartTime) / 1000)
+      );
       const payload = {
         userId: user.id,
-        subject: 'hebrew',
+        subject: "hebrew",
         correct: correct,
         timeSpent: timeSpent,
       };
-      console.log('[HebrewQuizPage] Submitting:', payload);
+      console.log("[HebrewQuizPage] Submitting:", payload);
       const response = await axios.post(
         "http://localhost:3000/api/user-stats/track-question",
         payload
       );
-      console.log('[HebrewQuizPage] Backend response:', response.data);
+      console.log("[HebrewQuizPage] Backend response:", response.data);
       if (!response.data) {
         throw new Error("No response data received");
       }
       await refetchStats();
-     
     } catch (error) {
       console.error("Failed to track question:", error);
       if (axios.isAxiosError(error)) {
@@ -195,16 +215,16 @@ const correctAnswerId = (correctIndex + 1).toString();
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center space-x-2 text-gray-600">
                     <Timer className="w-5 h-5" />
-                    <span className="font-medium">זמן שנותר:</span>
+                    <span className="font-medium">Time Remaining:</span>
                     <span className="font-mono">
                       {formatTime(timeRemaining)}
                     </span>
                   </div>
                   <div className="text-left">
                     <h2 className="text-lg font-bold text-gray-900">
-                      שאלה {question.id} מתוך {question.totalQuestions}
+                      Question {question.id} of {question.totalQuestions}
                       <span className="mr-2 text-sm font-normal text-purple-600">
-                        (רמה {difficultyLevel})
+                        (Level {difficultyLevel})
                       </span>
                     </h2>
                   </div>
@@ -223,7 +243,7 @@ const correctAnswerId = (correctIndex + 1).toString();
                     className="space-y-3"
                     disabled={isSubmitted}
                   >
-                    {question.options.map((option: any) => (
+                    {question.options.map((option: Option) => (
                       <label
                         key={option.id}
                         onClick={() => handleAnswerClick(option.id)}
@@ -259,7 +279,7 @@ const correctAnswerId = (correctIndex + 1).toString();
                       {isCorrect ? (
                         <>
                           <span className="font-medium text-green-600">
-                            !כל הכבוד! תשובה נכונה
+                            Correct! Well done!
                           </span>
                           <CheckCircle className="text-green-500" size={20} />
                         </>
@@ -267,8 +287,8 @@ const correctAnswerId = (correctIndex + 1).toString();
                         <>
                           <span className="font-medium text-red-600">
                             {timeRemaining === 0
-                              ? "!נגמר הזמן"
-                              : "!לא נכון. נסה שוב"}
+                              ? "Time's up!"
+                              : "Incorrect. Try again!"}
                           </span>
                           <XCircle className="text-red-500" size={20} />
                         </>
@@ -299,7 +319,7 @@ const correctAnswerId = (correctIndex + 1).toString();
                       className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
                       disabled={isLoading}
                     >
-                      שאלה הבאה
+                      Next Question
                     </Button>
                   )}
                 </div>

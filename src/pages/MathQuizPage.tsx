@@ -8,19 +8,36 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useStats } from "@/context/StatsContext";
 
+interface Option {
+  id: string;
+  text: string;
+}
+
+interface QuestionData {
+  id: number;
+  totalQuestions: number;
+  question: string;
+  options: Option[];
+  correctAnswer: string;
+  explanation: string;
+}
+
 const MathQuizPage = () => {
   const { user } = useAuth();
   const { refetchStats } = useStats();
 
-  const [question, setQuestion] = useState<any | null>(null);
+  const [question, setQuestion] = useState<QuestionData | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(
+    Date.now()
+  );
+  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] =
+    useState(false);
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -56,7 +73,7 @@ const MathQuizPage = () => {
       setQuestionStartTime(Date.now());
       setHasSubmittedAutomatically(false);
     } catch (err) {
-      console.error("שגיאה בטעינת שאלה:", err);
+      console.error("Failed to load question:", err);
       setQuestion(null);
     }
     setIsLoading(false);
@@ -73,7 +90,12 @@ const MathQuizPage = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-    if (timeRemaining === 0 && !isSubmitted && !isLoading && !hasSubmittedAutomatically) {
+    if (
+      timeRemaining === 0 &&
+      !isSubmitted &&
+      !isLoading &&
+      !hasSubmittedAutomatically
+    ) {
       setHasSubmittedAutomatically(true);
       handleSubmit();
     }
@@ -82,7 +104,9 @@ const MathQuizPage = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const handleSubmit = async () => {
@@ -93,19 +117,25 @@ const MathQuizPage = () => {
     setIsCorrect(correct);
 
     try {
-      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
+      const timeSpent = Math.max(
+        1,
+        Math.round((Date.now() - questionStartTime) / 1000)
+      );
       const payload = {
         userId: user.id,
-        subject: 'math',
+        subject: "math",
         correct,
         timeSpent,
       };
 
-      console.log('[MathQuizPage] Submitting:', payload);
+      console.log("[MathQuizPage] Submitting:", payload);
 
-      const response = await axios.post("http://localhost:3000/api/user-stats/track-question", payload);
+      const response = await axios.post(
+        "http://localhost:3000/api/user-stats/track-question",
+        payload
+      );
 
-      console.log('[MathQuizPage] Backend response:', response.data);
+      console.log("[MathQuizPage] Backend response:", response.data);
 
       if (!response.data) throw new Error("No response data received");
 
@@ -113,7 +143,11 @@ const MathQuizPage = () => {
     } catch (error) {
       console.error("Failed to track question:", error);
       if (axios.isAxiosError(error)) {
-        alert(`Failed to save progress: ${error.response?.data?.message || error.message}`);
+        alert(
+          `Failed to save progress: ${
+            error.response?.data?.message || error.message
+          }`
+        );
       } else {
         alert("Failed to save your progress. Please try again.");
       }
@@ -180,14 +214,14 @@ const MathQuizPage = () => {
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Timer className="w-5 h-5" />
-                  <span className="font-medium">זמן שנותר:</span>
+                  <span className="font-medium">Time Remaining:</span>
                   <span className="font-mono">{formatTime(timeRemaining)}</span>
                 </div>
                 <div className="text-left">
                   <h2 className="text-lg font-bold text-gray-900">
-                    שאלה {question.id} מתוך {question.totalQuestions}
+                    Question {question.id} of {question.totalQuestions}
                     <span className="mr-2 text-sm font-normal text-purple-600">
-                      (רמה {difficultyLevel})
+                      (Level {difficultyLevel})
                     </span>
                   </h2>
                 </div>
@@ -206,7 +240,7 @@ const MathQuizPage = () => {
                   className="space-y-3"
                   disabled={isSubmitted}
                 >
-                  {question.options.map((option: any) => (
+                  {question.options.map((option: Option) => (
                     <label
                       key={option.id}
                       onClick={() => handleAnswerClick(option.id)}
@@ -242,7 +276,7 @@ const MathQuizPage = () => {
                     {isCorrect ? (
                       <>
                         <span className="font-medium text-green-600">
-                          תשובה נכונה! כל הכבוד
+                          Correct! Well done!
                         </span>
                         <CheckCircle className="text-green-500" size={20} />
                       </>
@@ -250,8 +284,8 @@ const MathQuizPage = () => {
                       <>
                         <span className="font-medium text-red-600">
                           {timeRemaining === 0
-                            ? "נגמר הזמן"
-                            : "לא נכון. נסה שוב"}
+                            ? "Time's up!"
+                            : "Incorrect. Try again!"}
                         </span>
                         <XCircle className="text-red-500" size={20} />
                       </>
@@ -273,7 +307,7 @@ const MathQuizPage = () => {
                     disabled={!selectedAnswer || isLoading}
                     className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
                   >
-                    submit answer
+                    Submit Answer
                   </Button>
                 )}
                 {isSubmitted && (
@@ -282,7 +316,7 @@ const MathQuizPage = () => {
                     className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
                     disabled={isLoading}
                   >
-                    שאלה הבאה
+                    Next Question
                   </Button>
                 )}
               </div>
