@@ -20,6 +20,7 @@ const MathQuizPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] = useState(false);
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -31,6 +32,11 @@ const MathQuizPage = () => {
       });
 
       const q = res.data;
+      const correctIndex = q.answerOptions.findIndex(
+        (text: string) => text === q.correctAnswer
+      );
+      const correctAnswerId = (correctIndex + 1).toString();
+
       setQuestion({
         id: 1,
         totalQuestions: 1,
@@ -39,14 +45,16 @@ const MathQuizPage = () => {
           id: (index + 1).toString(),
           text,
         })),
-        correctAnswer: q.correctAnswer,
+        correctAnswer: correctAnswerId,
         explanation: q.explanation,
       });
+
       setSelectedAnswer("");
       setIsSubmitted(false);
       setIsCorrect(false);
       setTimeRemaining(60);
       setQuestionStartTime(Date.now());
+      setHasSubmittedAutomatically(false);
     } catch (err) {
       console.error("שגיאה בטעינת שאלה:", err);
       setQuestion(null);
@@ -64,80 +72,56 @@ const MathQuizPage = () => {
         setTimeRemaining((prev) => prev - 1);
       }, 1000);
       return () => clearInterval(timer);
-    } else if (timeRemaining === 0 && !isSubmitted && !isLoading) {
-      handleSubmit();
-      const nextQuestionTimer = setTimeout(() => {
-        handleNextQuestion();
-      }, 3000);
-      return () => clearTimeout(nextQuestionTimer);
     }
-  }, [timeRemaining, isSubmitted, isLoading]);
+    if (timeRemaining === 0 && !isSubmitted && !isLoading && !hasSubmittedAutomatically) {
+      setHasSubmittedAutomatically(true);
+      handleSubmit();
+    }
+  }, [timeRemaining, isSubmitted, isLoading, hasSubmittedAutomatically]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleSubmit = async () => {
-    if (!selectedAnswer || isSubmitted || !question || !user?.id) return;
-  
+    if (isSubmitted || !question || !user?.id) return;
+
     setIsSubmitted(true);
-  
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
-  
+
     try {
-      // ודא ש-questionStartTime מאותחל
-      const timeSpent = Math.max(1, Math.round((Date.now() - (questionStartTime || Date.now())) / 1000));
-  
+      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
       const payload = {
         userId: user.id,
         subject: 'math',
         correct,
         timeSpent,
       };
-  
+
       console.log('[MathQuizPage] Submitting:', payload);
-  
-      const response = await axios.post(
-        "http://localhost:3000/api/user-stats/track-question",
-        payload
-      );
-  
+
+      const response = await axios.post("http://localhost:3000/api/user-stats/track-question", payload);
+
       console.log('[MathQuizPage] Backend response:', response.data);
-  
-      if (!response.data) {
-        throw new Error("No response data received");
-      }
-  
-      // ודא ש-refetchStats מחזיר נתונים לדשבורד
+
+      if (!response.data) throw new Error("No response data received");
+
       await refetchStats();
-  
-      // עדכון רמת קושי
-      setDifficultyLevel((prev) =>
-        correct ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
-      );
-  
     } catch (error) {
       console.error("Failed to track question:", error);
       if (axios.isAxiosError(error)) {
-        alert(
-          `Failed to save progress: ${error.response?.data?.message || error.message}`
-        );
+        alert(`Failed to save progress: ${error.response?.data?.message || error.message}`);
       } else {
         alert("Failed to save your progress. Please try again.");
       }
     }
   };
-  
 
   const handleAnswerClick = (optionId: string) => {
-    if (!isSubmitted) {
-      setSelectedAnswer(optionId);
-    }
+    if (!isSubmitted) setSelectedAnswer(optionId);
   };
 
   const handleNextQuestion = async () => {
@@ -147,7 +131,6 @@ const MathQuizPage = () => {
     );
     await fetchQuestion();
   };
-
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
