@@ -20,6 +20,8 @@ const HebrewQuizPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] = useState(false);
+
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -31,17 +33,22 @@ const HebrewQuizPage = () => {
       });
 
       const q = res.data;
+      const correctIndex = q.answerOptions.findIndex(
+  (text: string) => text === q.correctAnswer
+);
+const correctAnswerId = (correctIndex + 1).toString();
       setQuestion({
-        id: 1,
-        totalQuestions: 1,
-        question: q.content,
-        options: q.answerOptions.map((text: string, index: number) => ({
-          id: (index + 1).toString(),
-          text,
-        })),
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-      });
+  id: 1,
+  totalQuestions: 1,
+  question: q.content,
+  options: q.answerOptions.map((text: string, index: number) => ({
+    id: (index + 1).toString(),
+    text,
+  })),
+  correctAnswer: correctAnswerId, 
+  explanation: q.explanation,
+});
+
       setSelectedAnswer("");
       setIsSubmitted(false);
       setIsCorrect(false);
@@ -51,6 +58,7 @@ const HebrewQuizPage = () => {
       console.error("Failed to fetch question:", err);
       setQuestion(null);
     }
+    setHasSubmittedAutomatically(false);
     setIsLoading(false);
   };
 
@@ -59,19 +67,20 @@ const HebrewQuizPage = () => {
   }, [user?.id, difficultyLevel]);
 
   useEffect(() => {
-    if (timeRemaining > 0 && !isSubmitted && !isLoading) {
-      const timer = setInterval(() => {
-        setTimeRemaining((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else if (timeRemaining === 0 && !isSubmitted && !isLoading) {
-      handleSubmit();
-      const nextQuestionTimer = setTimeout(() => {
-        handleNextQuestion();
-      }, 3000);
-      return () => clearTimeout(nextQuestionTimer);
-    }
-  }, [timeRemaining, isSubmitted, isLoading]);
+  if (timeRemaining > 0 && !isSubmitted && !isLoading) {
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }
+
+  if (timeRemaining === 0 && !isSubmitted && !isLoading && !hasSubmittedAutomatically) {
+    setHasSubmittedAutomatically(true);
+    handleSubmit();
+  }
+}, [timeRemaining, isSubmitted, isLoading, hasSubmittedAutomatically]);
+
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -82,7 +91,8 @@ const HebrewQuizPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedAnswer || isSubmitted || !question || !user?.id) return;
+    if (isSubmitted || !question || !user?.id) return;
+
 
     setIsSubmitted(true);
     const correct = selectedAnswer === question.correctAnswer;
@@ -106,9 +116,7 @@ const HebrewQuizPage = () => {
         throw new Error("No response data received");
       }
       await refetchStats();
-      setDifficultyLevel((prev) =>
-        correct ? Math.min(prev + 1, 5) : Math.max(prev - 1, 1)
-      );
+     
     } catch (error) {
       console.error("Failed to track question:", error);
       if (axios.isAxiosError(error)) {
