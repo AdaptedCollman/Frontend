@@ -55,21 +55,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const initAuth = async () => {
       try {
         const storedUser = authService.getUser();
-        const isValid = await authService.verifyToken();
-        if (storedUser && isValid) {
-          setUser({
-            id: storedUser.id,
-            name: storedUser.name,
-            email: storedUser.email,
-            hasCompletedOnboarding: storedUser.hasCompletedOnboarding ?? false,
-            currentLevel: storedUser.currentLevel ?? 1,
-            profileImage: storedUser.profileImage,
-          });
-          console.log("[AuthContext] User loaded from storage:", storedUser);
+        const accessToken = authService.getToken();
+        const refreshToken = authService.getRefreshToken();
+
+        if (storedUser && accessToken) {
+          const isValid = await authService.verifyToken();
+          if (isValid) {
+            setUser({
+              id: storedUser.id,
+              name: storedUser.name,
+              email: storedUser.email,
+              hasCompletedOnboarding:
+                storedUser.hasCompletedOnboarding ?? false,
+              currentLevel: storedUser.currentLevel ?? 1,
+              profileImage: storedUser.profileImage,
+            });
+            console.log("[AuthContext] User loaded from storage:", storedUser);
+          } else if (refreshToken) {
+            // If access token is invalid but we have a refresh token, try to refresh
+            const newAccessToken = await authService.refreshAccessToken();
+            if (newAccessToken) {
+              setUser({
+                id: storedUser.id,
+                name: storedUser.name,
+                email: storedUser.email,
+                hasCompletedOnboarding:
+                  storedUser.hasCompletedOnboarding ?? false,
+                currentLevel: storedUser.currentLevel ?? 1,
+                profileImage: storedUser.profileImage,
+              });
+              console.log(
+                "[AuthContext] User loaded after token refresh:",
+                storedUser
+              );
+            } else {
+              authService.logout();
+              setUser(null);
+              console.log("[AuthContext] Token refresh failed, logged out");
+            }
+          } else {
+            authService.logout();
+            setUser(null);
+            console.log("[AuthContext] No valid token or user.");
+          }
         } else {
           authService.logout();
           setUser(null);
-          console.log("[AuthContext] No valid token or user.");
+          console.log("[AuthContext] No stored user or token.");
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -160,7 +192,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         name: updatedUser.name,
         email: updatedUser.email,
         hasCompletedOnboarding:
-          updatedUser.hasCompletedOnboarding ?? user?.hasCompletedOnboarding ?? false,
+          updatedUser.hasCompletedOnboarding ??
+          user?.hasCompletedOnboarding ??
+          false,
         currentLevel: updatedUser.currentLevel ?? user?.currentLevel ?? 1,
         profileImage: updatedUser.profileImage,
       });

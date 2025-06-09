@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Moon, Sun } from "lucide-react";
+import { Trash2} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import Sidebar from "@/components/Sidebar";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 
 interface UpdateUserData {
   name?: string;
@@ -17,7 +22,6 @@ interface UpdateUserData {
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
-  const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,10 +33,9 @@ const ProfilePage = () => {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showDeletePhotoModal, setShowDeletePhotoModal] = useState(false);
 
-  const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
-  };
+ 
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -53,44 +56,60 @@ const ProfilePage = () => {
     }
   };
 
-  const handleDeleteImage = () => {
-    setPreviewUrl(null);
-    setSelectedFile(null);
+  const handleDeleteImageClick = () => {
+    setShowDeletePhotoModal(true);
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
-  try {
-    const updateData: UpdateUserData = {
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      phone: formData.phone,
-    };
-
-    if (selectedFile) {
-      const base64String = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve(reader.result as string);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
-
-      await updateUser({
-        ...updateData,
-        profileImage: base64String,
-      });
-    } else {
-      await updateUser(updateData);
+  const handleConfirmDeleteImage = async () => {
+    setIsLoading(true);
+    try {
+      await updateUser({ profileImage: null });
+      setPreviewUrl(null);
+      setSelectedFile(null);
+      setShowDeletePhotoModal(false);
+    } catch (error) {
+      console.error("Error deleting profile image:", error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error updating profile:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
+  const handleCancelDeleteImage = () => {
+    setShowDeletePhotoModal(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const updateData: UpdateUserData = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        phone: formData.phone,
+      };
+
+      if (selectedFile) {
+        const base64String = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(selectedFile);
+        });
+
+        await updateUser({
+          ...updateData,
+          profileImage: base64String,
+        });
+      } else {
+        await updateUser(updateData);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -108,21 +127,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     Manage your profile settings
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-2 bg-gray-100 p-2 rounded-lg">
-                    <Sun className="h-4 w-4 text-gray-600" />
-                    <Switch
-                      id="theme-toggle"
-                      checked={theme === "dark"}
-                      onCheckedChange={toggleTheme}
-                      aria-label="Toggle theme"
-                    />
-                    <Moon className="h-4 w-4 text-gray-600" />
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Toggle dark mode for the application
-                  </p>
-                </div>
+                
               </div>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-8">
@@ -168,25 +173,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                         type="button"
                         variant="outline"
                         className="text-red-600 border-red-200 hover:bg-red-50"
-                        onClick={handleDeleteImage}
+                        onClick={handleDeleteImageClick}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </Button>
                     </div>
-                    <div className="flex-1 bg-blue-50 rounded-lg p-6">
-                      <h3 className="font-medium text-blue-900">
-                        Build Trust!
-                      </h3>
-                      <p className="mt-2 text-sm text-blue-700">
-                        Your photo will appear on emails and your online
-                        scheduling link
-                      </p>
-                      <p className="mt-2 text-sm text-blue-700">
-                        This helps students associate a face with their
-                        instructor
-                      </p>
-                    </div>
+                    
                   </div>
                 </div>
 
@@ -235,9 +228,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                         onCheckedChange={setShowPhone}
                         className="mr-3"
                       />
-                      <span className="text-sm text-gray-600">
-                        Show phone number publicly
-                      </span>
+                      
                     </div>
                   </div>
                 </div>
@@ -257,6 +248,40 @@ const handleSubmit = async (e: React.FormEvent) => {
           </div>
         </div>
       </main>
+
+      {/* Delete Photo Confirmation Modal */}
+      <Dialog
+        open={showDeletePhotoModal}
+        onClose={handleCancelDeleteImage}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle className="font-semibold text-gray-800">
+          Delete Profile Photo
+        </DialogTitle>
+        <DialogContent>
+          <p className="text-gray-600 mt-2">
+            Are you sure you want to delete your profile photo? This action
+            cannot be undone.
+          </p>
+        </DialogContent>
+        <DialogActions className="p-4">
+          <Button
+            onClick={handleCancelDeleteImage}
+            className="text-gray-600 hover:bg-gray-100"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDeleteImage}
+            variant="destructive"
+            className="bg-red-600 hover:bg-red-700 text-white"
+            disabled={isLoading}
+          >
+            Delete Photo
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
