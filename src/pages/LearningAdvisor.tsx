@@ -22,33 +22,43 @@ const LearningAdvisor = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || loading) return;
+const handleSendMessage = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!newMessage.trim() || loading) return;
 
-    const userMessage: Message = {
-      id: messages.length + 1,
-      text: newMessage,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setNewMessage('');
-    setLoading(true);
-
-    // Call Gemini API
-    const advisorReply = await sendToGemini(userMessage.text);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        text: advisorReply,
-        sender: 'advisor',
-        timestamp: new Date(),
-      },
-    ]);
-    setLoading(false);
+  const userMessage: Message = {
+    id: messages.length + 1,
+    text: newMessage,
+    sender: 'user',
+    timestamp: new Date(),
   };
+
+  const updatedMessages = [...messages, userMessage];
+  setMessages(updatedMessages);
+  setNewMessage('');
+  setLoading(true);
+
+  // שמירת 10 ההודעות האחרונות
+  const recentMessages = updatedMessages.slice(-10).map((msg) => ({
+    role: msg.sender === 'user' ? "user" as const : "assistant" as const,
+    content: msg.text,
+  }));
+
+  // קריאה ל־Gemini עם ההקשר
+  const advisorReply = await sendToGemini(recentMessages);
+
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: prev.length + 1,
+      text: advisorReply,
+      sender: 'advisor',
+      timestamp: new Date(),
+    },
+  ]);
+  setLoading(false);
+};
+
 
   return (
     <div className="flex h-screen bg-gray-50">
