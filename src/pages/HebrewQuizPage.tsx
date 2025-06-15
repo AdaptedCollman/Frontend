@@ -308,7 +308,7 @@ const HebrewQuizPage = () => {
                     <Button
                       onClick={handleSubmit}
                       disabled={!selectedAnswer || isLoading}
-                      className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                      className="w-full cursor-pointer sm:w-auto bg-purple-600 hover:bg-purple-700"
                     >
                       Submit Answer
                     </Button>
@@ -316,7 +316,7 @@ const HebrewQuizPage = () => {
                   {isSubmitted && (
                     <Button
                       onClick={handleNextQuestion}
-                      className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                      className="w-full cursor-pointer sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
                       disabled={isLoading}
                     >
                       Next Question
