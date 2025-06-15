@@ -207,6 +207,7 @@ const MathQuizPage = () => {
           </div>
         ) : (
           <div className="p-8">
+            <div className="max-w-4xl mx-auto">
             <div
               className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
               dir="rtl"
@@ -305,7 +306,7 @@ const MathQuizPage = () => {
                   <Button
                     onClick={handleSubmit}
                     disabled={!selectedAnswer || isLoading}
-                    className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
+                    className="w-full cursor-pointer sm:w-auto bg-purple-600 hover:bg-purple-700"
                   >
                     Submit Answer
                   </Button>
@@ -313,13 +314,14 @@ const MathQuizPage = () => {
                 {isSubmitted && (
                   <Button
                     onClick={handleNextQuestion}
-                    className="w-full sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                    className="w-full cursor-pointer sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
                     disabled={isLoading}
                   >
                     Next Question
                   </Button>
                 )}
               </div>
+            </div>
             </div>
           </div>
         )}

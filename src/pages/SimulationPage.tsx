@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useSimulation } from "@/context/SimulationContext";
 import { useNavigate } from "react-router-dom";
+import { calculatePsychometricScore, getSectionStats, SectionResults } from "@/utils/psychometricScoring";
 
 const CHAPTERS = [
   { label: "English", topic: "english", count: 22 },
@@ -52,6 +53,9 @@ const SimulationPage: React.FC = () => {
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [finalDuration, setFinalDuration] = useState<number | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // Add new state for detailed scoring
+  const [sectionStats, setSectionStats] = useState<any>(null);
 
   // Add new state for chapter navigation denied modal
   const [
@@ -174,28 +178,45 @@ const SimulationPage: React.FC = () => {
   };
 
   const finishSimulation = async () => {
-    const totalQuestions = CHAPTERS.reduce((sum, ch) => sum + ch.count, 0);
-    let correct = 0;
+    // Calculate section-specific results
+    const sectionResults: SectionResults = {
+      english: { correct: 0, total: CHAPTERS[0].count }, // English section
+      verbal: { correct: 0, total: CHAPTERS[1].count }, // Hebrew section (verbal reasoning)
+      quantitative: { correct: 0, total: CHAPTERS[2].count }, // Math section (quantitative reasoning)
+    };
 
-    questions.forEach((chapter) => {
+    // Count correct answers for each section
+    questions.forEach((chapter, chapterIndex) => {
       chapter.forEach((q) => {
         if (q && q.selectedAnswer === q.correctAnswer) {
-          correct++;
+          if (chapterIndex === 0) {
+            sectionResults.english.correct++;
+          } else if (chapterIndex === 1) {
+            sectionResults.verbal.correct++;
+          } else if (chapterIndex === 2) {
+            sectionResults.quantitative.correct++;
+          }
         }
       });
     });
 
-    const score = Math.round((correct / totalQuestions) * 100);
+    // Calculate final psychometric score using Israeli scoring system
+    const psychometricScore = calculatePsychometricScore(sectionResults);
+    
+    // Get detailed section statistics for display
+    const detailedStats = getSectionStats(sectionResults);
+
     const duration = startTime
       ? Math.floor((new Date().getTime() - startTime.getTime()) / 1000)
       : SIMULATION_TIME - timer;
 
     try {
       await axios.put(`http://localhost:3000/api/tests/${testId}/finish`, {
-        score,
+        score: psychometricScore,
         duration,
       });
-      setFinalScore(score);
+      setFinalScore(psychometricScore);
+      setSectionStats(detailedStats);
       setFinalDuration(duration);
       setShowScoreModal(true);
       setIsTimerRunning(false);
@@ -256,32 +277,37 @@ const SimulationPage: React.FC = () => {
         <div className="p-8 max-w-3xl mx-auto">
           {/* Start Simulation Modal */}
           {showStartModal && (
-            <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="relative py-50 inset-0 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200">
                 <h3 className="text-2xl font-bold mb-4 text-center">
                   Start New Simulation
                 </h3>
                 <div className="space-y-4 mb-6">
                   <p className="text-gray-600 text-center">
-                    Are you ready to start a new simulation? This will begin a
-                    timed test with questions from all subjects.
+                    Ready to take the Israeli psychometric exam simulation? This test follows the official format with proper scoring weights.
                   </p>
-                  <div className="text-center text-sm text-gray-500">
+                  <div className="text-center text-sm text-gray-500 space-y-1">
                     <p>• Total Questions: 66</p>
                     <p>• Time Limit: 60 minutes</p>
-                    <p>• Subjects: English, Hebrew, Math</p>
+                    <p>• Scoring Range: 200-800</p>
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <p className="font-semibold text-gray-700 mb-1">Section Weights:</p>
+                      <p className="text-xs">• Verbal Reasoning (Hebrew): 40%</p>
+                      <p className="text-xs">• Quantitative Reasoning (Math): 40%</p>
+                      <p className="text-xs">• English: 20%</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={() => (window.location.href = "/dashboard")}
-                    className="px-6 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                    className="px-6 py-2 cursor-pointer rounded-lg border border-gray-300 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleStartSimulation}
-                    className="px-6 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                    className="px-6 py-2 cursor-pointer rounded-lg bg-purple-600 text-white hover:bg-purple-700"
                   >
                     Start Simulation
                   </button>
@@ -457,18 +483,71 @@ const SimulationPage: React.FC = () => {
                 finalScore !== null &&
                 finalDuration !== null && (
                   <div className="fixed inset-0 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200">
+                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
                       <h3 className="text-2xl font-bold mb-4 text-center">
-                        Test Results
+                        Israeli Psychometric Exam Results
                       </h3>
-                      <div className="space-y-4 mb-6">
-                        <div className="text-center">
-                          <p className="text-4xl font-bold text-purple-600 mb-2">
-                            {finalScore}%
+                      <div className="space-y-6 mb-6">
+                        {/* Final Score */}
+                        <div className="text-center bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
+                          <p className="text-5xl font-bold text-purple-600 mb-2">
+                            {finalScore}
                           </p>
-                          <p className="text-gray-600">Your Score</p>
+                          <p className="text-gray-600 text-lg">Final Psychometric Score</p>
+                          <p className="text-sm text-gray-500 mt-1">Range: 200-800</p>
                         </div>
-                        <div className="text-center">
+
+                        {/* Section Breakdown */}
+                        {sectionStats && (
+                          <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-center mb-4">Section Breakdown</h4>
+                            
+                            {/* Verbal Reasoning (Hebrew) */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="font-semibold text-blue-600">Verbal Reasoning (Hebrew)</h5>
+                                <span className="text-sm text-gray-500">Weight: 40%</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">
+                                  {sectionStats.verbal.correct}/{sectionStats.verbal.total} correct ({sectionStats.verbal.percentage}%)
+                                </span>
+                                <span className="font-bold text-blue-600">{sectionStats.verbal.score}</span>
+                              </div>
+                            </div>
+
+                            {/* Quantitative Reasoning (Math) */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="font-semibold text-green-600">Quantitative Reasoning (Math)</h5>
+                                <span className="text-sm text-gray-500">Weight: 40%</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">
+                                  {sectionStats.quantitative.correct}/{sectionStats.quantitative.total} correct ({sectionStats.quantitative.percentage}%)
+                                </span>
+                                <span className="font-bold text-green-600">{sectionStats.quantitative.score}</span>
+                              </div>
+                            </div>
+
+                            {/* English */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="font-semibold text-orange-600">English</h5>
+                                <span className="text-sm text-gray-500">Weight: 20%</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">
+                                  {sectionStats.english.correct}/{sectionStats.english.total} correct ({sectionStats.english.percentage}%)
+                                </span>
+                                <span className="font-bold text-orange-600">{sectionStats.english.score}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Time Taken */}
+                        <div className="text-center bg-gray-50 rounded-lg p-4">
                           <p className="text-xl font-semibold mb-1">
                             {formatTime(finalDuration)}
                           </p>
