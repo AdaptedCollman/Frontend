@@ -56,8 +56,29 @@ const navItems = [
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
   const navigate = useNavigate();
+
+  // ברירת מחדל: אם המסך קטן (פחות מ־768px), נסגור את הסיידבר
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 768; 
+    }
+    return false;
+  });
+
+  // אם רוצים שגם בשינוי גודל מסך זה יתעדכן:
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsCollapsed(true);
+      } else {
+        setIsCollapsed(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <aside

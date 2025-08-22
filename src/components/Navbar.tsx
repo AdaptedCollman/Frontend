@@ -117,7 +117,7 @@ const Navbar: React.FC = () => {
               Adapt<span className="text-[#3461FF]">ED</span>
             </span>
           </div>
-          <div className="hidden md:flex gap-4 items-center">
+          <div className="flex gap-4 items-center">
             <Button variant="text" onClick={handleLoginOpen} className="!text-white !font-medium hover:!bg-white/10">
               LOGIN
             </Button>
