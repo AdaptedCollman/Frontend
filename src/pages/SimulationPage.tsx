@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar.tsx";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-import { useSimulation } from "@/context/SimulationContext";
+import { useSimulation } from "@/context/SimulationContext.tsx";
 import { useNavigate } from "react-router-dom";
 import {
   calculatePsychometricScore,
   getSectionStats,
   SectionResults,
-} from "@/utils/psychometricScoring";
+} from "@/utils/psychometricScoring.ts";
 
 const CHAPTERS = [
   { label: "English", topic: "english", count: 22 },

@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useSimulation } from "@/context/SimulationContext";
+import { cn } from "@/lib/utils.ts";
+import { useSimulation } from "@/context/SimulationContext.tsx";
 
 interface NavItemProps {
   icon: LucideIcon;

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button.tsx";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group.tsx";
 import { CheckCircle, XCircle, Timer } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
-import { useStats } from "@/context/StatsContext";
+import Sidebar from "@/components/Sidebar.tsx";
+import { cn } from "@/lib/utils.ts";
+import { useAuth } from "@/context/AuthContext.tsx";
+import { useStats } from "@/context/StatsContext.tsx";
 
 const EnglishQuizPage = () => {
   const { user } = useAuth();

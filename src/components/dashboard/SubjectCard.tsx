@@ -2,7 +2,7 @@ import React from "react";
 import { Card, Typography, LinearProgress } from "@mui/material";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils.ts";
 
 interface SubjectCardProps {
   name: string;

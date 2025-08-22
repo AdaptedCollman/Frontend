@@ -13,7 +13,7 @@ import {
 import SchoolIcon from "@mui/icons-material/School";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar.tsx";
 
 interface Message {
   id: number;
@@ -57,8 +57,7 @@ const subjects = [
 ];
 
 const ChatWizard: React.FC = () => {
-  const { isAuthenticated, completeOnboarding } =
-    useAuth();
+  const { isAuthenticated, completeOnboarding } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [userResponses, setUserResponses] =
@@ -252,7 +251,9 @@ const ChatWizard: React.FC = () => {
                   }));
                 }}
                 color={
-                  userResponses.subjects.includes(option) ? "primary" : "default"
+                  userResponses.subjects.includes(option)
+                    ? "primary"
+                    : "default"
                 }
                 className="cursor-pointer"
               />

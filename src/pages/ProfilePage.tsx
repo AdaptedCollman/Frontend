@@ -1,11 +1,15 @@
-import React, { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Trash2} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import Sidebar from "@/components/Sidebar";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Trash2 } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar.tsx";
+import { Switch } from "@/components/ui/switch.tsx";
+import Sidebar from "@/components/Sidebar.tsx";
 import {
   Dialog,
   DialogTitle,
@@ -34,8 +38,6 @@ const ProfilePage = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showDeletePhotoModal, setShowDeletePhotoModal] = useState(false);
-
- 
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -127,7 +129,6 @@ const ProfilePage = () => {
                     Manage your profile settings
                   </p>
                 </div>
-                
               </div>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-8">
@@ -179,7 +180,6 @@ const ProfilePage = () => {
                         Delete
                       </Button>
                     </div>
-                    
                   </div>
                 </div>
 
@@ -228,7 +228,6 @@ const ProfilePage = () => {
                         onCheckedChange={setShowPhone}
                         className="mr-3"
                       />
-                      
                     </div>
                   </div>
                 </div>
