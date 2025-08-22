@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { HelpCircle, BookOpen, Clock, MessageSquare, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

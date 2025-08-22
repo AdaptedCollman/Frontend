@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Target, Lightbulb, Sparkles, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

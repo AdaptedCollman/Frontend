@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -19,8 +19,11 @@ const EnglishQuizPage = () => {
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(
+    Date.now()
+  );
+  const [hasSubmittedAutomatically, setHasSubmittedAutomatically] =
+    useState(false);
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
@@ -73,7 +76,12 @@ const EnglishQuizPage = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-    if (timeRemaining === 0 && !isSubmitted && !isLoading && !hasSubmittedAutomatically) {
+    if (
+      timeRemaining === 0 &&
+      !isSubmitted &&
+      !isLoading &&
+      !hasSubmittedAutomatically
+    ) {
       setHasSubmittedAutomatically(true);
       handleSubmit();
     }
@@ -82,7 +90,9 @@ const EnglishQuizPage = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const handleSubmit = async () => {
@@ -93,14 +103,20 @@ const EnglishQuizPage = () => {
     setIsCorrect(correct);
 
     try {
-      const timeSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
+      const timeSpent = Math.max(
+        1,
+        Math.round((Date.now() - questionStartTime) / 1000)
+      );
 
-      const response = await axios.post("http://localhost:3000/api/user-stats/track-question", {
-        userId: user.id,
-        subject: "english",
-        correct,
-        timeSpent,
-      });
+      const response = await axios.post(
+        "http://localhost:3000/api/user-stats/track-question",
+        {
+          userId: user.id,
+          subject: "english",
+          correct,
+          timeSpent,
+        }
+      );
 
       if (!response.data) throw new Error("No response data received");
 
@@ -108,7 +124,11 @@ const EnglishQuizPage = () => {
     } catch (error) {
       console.error("Failed to track question:", error);
       if (axios.isAxiosError(error)) {
-        alert(`Failed to save progress: ${error.response?.data?.message || error.message}`);
+        alert(
+          `Failed to save progress: ${
+            error.response?.data?.message || error.message
+          }`
+        );
       } else {
         alert("Failed to save your progress. Please try again.");
       }
