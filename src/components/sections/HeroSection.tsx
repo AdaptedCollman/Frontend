@@ -10,7 +10,7 @@ interface HeroSectionProps {
 
 const HeroSection: React.FC<HeroSectionProps> = ({ onHowItWorksClick }) => {
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-white to-blue-50 flex items-center">
+    <div className="relative min-h-screen bg-gradient-to-br from-white to-blue-50 flex items-center pt-16 md:pt-20">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
