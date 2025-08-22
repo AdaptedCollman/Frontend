@@ -57,7 +57,7 @@ const subjects = [
 ];
 
 const ChatWizard: React.FC = () => {
-  const { isAuthenticated, hasCompletedOnboarding, completeOnboarding } =
+  const { isAuthenticated, completeOnboarding } =
     useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState(0);

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
+
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import AutoGraphIcon from "@mui/icons-material/AutoGraph";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";

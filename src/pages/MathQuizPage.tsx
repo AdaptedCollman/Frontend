@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -208,120 +208,122 @@ const MathQuizPage = () => {
         ) : (
           <div className="p-8">
             <div className="max-w-4xl mx-auto">
-            <div
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-              dir="rtl"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Timer className="w-5 h-5" />
-                  <span className="font-medium">Time Remaining:</span>
-                  <span className="font-mono">{formatTime(timeRemaining)}</span>
-                </div>
-                <div className="text-left">
-                  <h2 className="text-lg font-bold text-gray-900">
-                    Question {question.id} of {question.totalQuestions}
-                    <span className="mr-2 text-sm font-normal text-purple-600">
-                      (Level {difficultyLevel})
+              <div
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                dir="rtl"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Timer className="w-5 h-5" />
+                    <span className="font-medium">Time Remaining:</span>
+                    <span className="font-mono">
+                      {formatTime(timeRemaining)}
                     </span>
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mb-8 text-right">
-                <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
-                  {question.question}
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <RadioGroup
-                  value={selectedAnswer}
-                  onValueChange={setSelectedAnswer}
-                  className="space-y-3"
-                  disabled={isSubmitted}
-                >
-                  {question.options.map((option: Option) => (
-                    <label
-                      key={option.id}
-                      onClick={() => handleAnswerClick(option.id)}
-                      className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border",
-                        isSubmitted && option.id === question.correctAnswer
-                          ? "border-green-500 bg-green-50"
-                          : isSubmitted &&
-                            option.id === selectedAnswer &&
-                            !isCorrect
-                          ? "border-red-500 bg-red-50"
-                          : option.id === selectedAnswer
-                          ? "border-purple-500 bg-purple-50"
-                          : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
-                        "cursor-pointer transition-colors"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
-                          {option.id}
-                        </span>
-                        <span className="text-gray-700">{option.text}</span>
-                      </div>
-                      <RadioGroupItem value={option.id} id={option.id} />
-                    </label>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {isSubmitted && (
-                <div className="mb-6 text-right">
-                  <div className="flex items-center gap-2 mb-2 justify-end">
-                    {isCorrect ? (
-                      <>
-                        <span className="font-medium text-green-600">
-                          Correct! Well done!
-                        </span>
-                        <CheckCircle className="text-green-500" size={20} />
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-medium text-red-600">
-                          {timeRemaining === 0
-                            ? "Time's up!"
-                            : "Incorrect. Try again!"}
-                        </span>
-                        <XCircle className="text-red-500" size={20} />
-                      </>
-                    )}
                   </div>
-                  <p className="mt-2 text-sm text-gray-600">
-                    {question.explanation}
+                  <div className="text-left">
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Question {question.id} of {question.totalQuestions}
+                      <span className="mr-2 text-sm font-normal text-purple-600">
+                        (Level {difficultyLevel})
+                      </span>
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="mb-8 text-right">
+                  <p className="text-lg text-gray-800 whitespace-pre-line font-sans">
+                    {question.question}
                   </p>
                 </div>
-              )}
 
-              <div
-                className="flex flex-col sm:flex-row gap-4 text-left"
-                dir="ltr"
-              >
-                {!isSubmitted && (
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!selectedAnswer || isLoading}
-                    className="w-full cursor-pointer sm:w-auto bg-purple-600 hover:bg-purple-700"
+                <div className="space-y-4 mb-8">
+                  <RadioGroup
+                    value={selectedAnswer}
+                    onValueChange={setSelectedAnswer}
+                    className="space-y-3"
+                    disabled={isSubmitted}
                   >
-                    Submit Answer
-                  </Button>
-                )}
+                    {question.options.map((option: Option) => (
+                      <label
+                        key={option.id}
+                        onClick={() => handleAnswerClick(option.id)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-lg border",
+                          isSubmitted && option.id === question.correctAnswer
+                            ? "border-green-500 bg-green-50"
+                            : isSubmitted &&
+                              option.id === selectedAnswer &&
+                              !isCorrect
+                            ? "border-red-500 bg-red-50"
+                            : option.id === selectedAnswer
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-gray-200 hover:border-purple-500 hover:bg-purple-50",
+                          "cursor-pointer transition-colors"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-medium">
+                            {option.id}
+                          </span>
+                          <span className="text-gray-700">{option.text}</span>
+                        </div>
+                        <RadioGroupItem value={option.id} id={option.id} />
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+
                 {isSubmitted && (
-                  <Button
-                    onClick={handleNextQuestion}
-                    className="w-full cursor-pointer sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
-                    disabled={isLoading}
-                  >
-                    Next Question
-                  </Button>
+                  <div className="mb-6 text-right">
+                    <div className="flex items-center gap-2 mb-2 justify-end">
+                      {isCorrect ? (
+                        <>
+                          <span className="font-medium text-green-600">
+                            Correct! Well done!
+                          </span>
+                          <CheckCircle className="text-green-500" size={20} />
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium text-red-600">
+                            {timeRemaining === 0
+                              ? "Time's up!"
+                              : "Incorrect. Try again!"}
+                          </span>
+                          <XCircle className="text-red-500" size={20} />
+                        </>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {question.explanation}
+                    </p>
+                  </div>
                 )}
+
+                <div
+                  className="flex flex-col sm:flex-row gap-4 text-left"
+                  dir="ltr"
+                >
+                  {!isSubmitted && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!selectedAnswer || isLoading}
+                      className="w-full cursor-pointer sm:w-auto bg-purple-600 hover:bg-purple-700"
+                    >
+                      Submit Answer
+                    </Button>
+                  )}
+                  {isSubmitted && (
+                    <Button
+                      onClick={handleNextQuestion}
+                      className="w-full cursor-pointer sm:w-auto border border-purple-600 text-purple-600 hover:bg-purple-50"
+                      disabled={isLoading}
+                    >
+                      Next Question
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
             </div>
           </div>
         )}

@@ -18,7 +18,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar: React.FC = () => {
   const { scrollY } = useScroll();
-  const { login, register,isAuthenticated } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

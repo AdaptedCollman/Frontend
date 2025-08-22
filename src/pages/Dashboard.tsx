@@ -1,37 +1,29 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import { Card, Typography, Box } from "@mui/material";
-import axios from "../utils/axios";
+import { Card, Typography } from "@mui/material";
 import {
-  Clock,
-  Award,
   ArrowRight,
   Languages,
   BookOpen,
   Calculator,
-  Star,
   Target,
   Brain,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Calendar,
   BarChart3,
   PieChart,
   Activity,
   Trophy,
   AlertTriangle,
   CheckCircle,
-  Clock as ClockIcon,
+  Clock,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import Sidebar from "@/components/Sidebar";
 import {
   ScoreProgressChart,
   SectionPerformanceChart,
-  AccuracyChart,
   EmptyChartState,
 } from "../components/DashboardCharts";
+import { useAuth } from "../context/AuthContext";
+import axios from "../utils/axios";
 
 interface TestStats {
   averageScore: string;
@@ -134,10 +126,7 @@ const Dashboard = () => {
     { name: 'English', value: testStats.sectionStats.english.percentage, color: '#F59E0B' },
   ] : [];
 
-  const accuracyData = testStats ? [
-    { name: 'Correct', value: testStats.totalQuestions * (parseFloat(testStats.averageScore) / 100), color: '#10B981' },
-    { name: 'Incorrect', value: testStats.totalQuestions * (1 - parseFloat(testStats.averageScore) / 100), color: '#EF4444' },
-  ] : [];
+
 
   if (loading) {
     return (
@@ -412,7 +401,7 @@ const Dashboard = () => {
                           {activity.score}
                         </Typography>
                         <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <ClockIcon size={14} />
+                          <Clock size={14} />
                           {formatDuration(activity.duration)}
                         </div>
                       </div>

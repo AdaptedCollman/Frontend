@@ -4,7 +4,11 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useSimulation } from "@/context/SimulationContext";
 import { useNavigate } from "react-router-dom";
-import { calculatePsychometricScore, getSectionStats, SectionResults } from "@/utils/psychometricScoring";
+import {
+  calculatePsychometricScore,
+  getSectionStats,
+  SectionResults,
+} from "@/utils/psychometricScoring";
 
 const CHAPTERS = [
   { label: "English", topic: "english", count: 22 },
@@ -157,12 +161,35 @@ const SimulationPage: React.FC = () => {
       .padStart(2, "0")}`;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const q = questions[currentChapter][currentQuestion];
-    if (!q) return;
+    if (!q || !user?.id) return;
+
     const isAnswerCorrect = selectedAnswer === q.correctAnswer;
     setIsCorrect(isAnswerCorrect);
     setIsSubmitted(true);
+
+    // Track this question answer to UserStats
+    try {
+      const timeSpent = 1; // Default time for simulation questions
+      const subject = CHAPTERS[currentChapter].topic;
+
+      const payload = {
+        userId: user.id,
+        subject: subject,
+        correct: isAnswerCorrect,
+        timeSpent: timeSpent,
+      };
+
+      console.log("[SimulationPage] Tracking question:", payload);
+
+      await axios.post(
+        "http://localhost:3000/api/user-stats/track-question",
+        payload
+      );
+    } catch (error) {
+      console.error("Failed to track question:", error);
+    }
 
     setQuestions((prev) => {
       const updated = prev.map((chapter, chIdx) =>
@@ -202,7 +229,7 @@ const SimulationPage: React.FC = () => {
 
     // Calculate final psychometric score using Israeli scoring system
     const psychometricScore = calculatePsychometricScore(sectionResults);
-    
+
     // Get detailed section statistics for display
     const detailedStats = getSectionStats(sectionResults);
 
@@ -284,16 +311,24 @@ const SimulationPage: React.FC = () => {
                 </h3>
                 <div className="space-y-4 mb-6">
                   <p className="text-gray-600 text-center">
-                    Ready to take the Israeli psychometric exam simulation? This test follows the official format with proper scoring weights.
+                    Ready to take the Israeli psychometric exam simulation? This
+                    test follows the official format with proper scoring
+                    weights.
                   </p>
                   <div className="text-center text-sm text-gray-500 space-y-1">
                     <p>• Total Questions: 66</p>
                     <p>• Time Limit: 60 minutes</p>
                     <p>• Scoring Range: 200-800</p>
                     <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <p className="font-semibold text-gray-700 mb-1">Section Weights:</p>
-                      <p className="text-xs">• Verbal Reasoning (Hebrew): 40%</p>
-                      <p className="text-xs">• Quantitative Reasoning (Math): 40%</p>
+                      <p className="font-semibold text-gray-700 mb-1">
+                        Section Weights:
+                      </p>
+                      <p className="text-xs">
+                        • Verbal Reasoning (Hebrew): 40%
+                      </p>
+                      <p className="text-xs">
+                        • Quantitative Reasoning (Math): 40%
+                      </p>
                       <p className="text-xs">• English: 20%</p>
                     </div>
                   </div>
@@ -493,54 +528,84 @@ const SimulationPage: React.FC = () => {
                           <p className="text-5xl font-bold text-purple-600 mb-2">
                             {finalScore}
                           </p>
-                          <p className="text-gray-600 text-lg">Final Psychometric Score</p>
-                          <p className="text-sm text-gray-500 mt-1">Range: 200-800</p>
+                          <p className="text-gray-600 text-lg">
+                            Final Psychometric Score
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Range: 200-800
+                          </p>
                         </div>
 
                         {/* Section Breakdown */}
                         {sectionStats && (
                           <div className="space-y-4">
-                            <h4 className="text-lg font-semibold text-center mb-4">Section Breakdown</h4>
-                            
+                            <h4 className="text-lg font-semibold text-center mb-4">
+                              Section Breakdown
+                            </h4>
+
                             {/* Verbal Reasoning (Hebrew) */}
                             <div className="bg-white border border-gray-200 rounded-lg p-4">
                               <div className="flex justify-between items-center mb-2">
-                                <h5 className="font-semibold text-blue-600">Verbal Reasoning (Hebrew)</h5>
-                                <span className="text-sm text-gray-500">Weight: 40%</span>
+                                <h5 className="font-semibold text-blue-600">
+                                  Verbal Reasoning (Hebrew)
+                                </h5>
+                                <span className="text-sm text-gray-500">
+                                  Weight: 40%
+                                </span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">
-                                  {sectionStats.verbal.correct}/{sectionStats.verbal.total} correct ({sectionStats.verbal.percentage}%)
+                                  {sectionStats.verbal.correct}/
+                                  {sectionStats.verbal.total} correct (
+                                  {sectionStats.verbal.percentage}%)
                                 </span>
-                                <span className="font-bold text-blue-600">{sectionStats.verbal.score}</span>
+                                <span className="font-bold text-blue-600">
+                                  {sectionStats.verbal.score}
+                                </span>
                               </div>
                             </div>
 
                             {/* Quantitative Reasoning (Math) */}
                             <div className="bg-white border border-gray-200 rounded-lg p-4">
                               <div className="flex justify-between items-center mb-2">
-                                <h5 className="font-semibold text-green-600">Quantitative Reasoning (Math)</h5>
-                                <span className="text-sm text-gray-500">Weight: 40%</span>
+                                <h5 className="font-semibold text-green-600">
+                                  Quantitative Reasoning (Math)
+                                </h5>
+                                <span className="text-sm text-gray-500">
+                                  Weight: 40%
+                                </span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">
-                                  {sectionStats.quantitative.correct}/{sectionStats.quantitative.total} correct ({sectionStats.quantitative.percentage}%)
+                                  {sectionStats.quantitative.correct}/
+                                  {sectionStats.quantitative.total} correct (
+                                  {sectionStats.quantitative.percentage}%)
                                 </span>
-                                <span className="font-bold text-green-600">{sectionStats.quantitative.score}</span>
+                                <span className="font-bold text-green-600">
+                                  {sectionStats.quantitative.score}
+                                </span>
                               </div>
                             </div>
 
                             {/* English */}
                             <div className="bg-white border border-gray-200 rounded-lg p-4">
                               <div className="flex justify-between items-center mb-2">
-                                <h5 className="font-semibold text-orange-600">English</h5>
-                                <span className="text-sm text-gray-500">Weight: 20%</span>
+                                <h5 className="font-semibold text-orange-600">
+                                  English
+                                </h5>
+                                <span className="text-sm text-gray-500">
+                                  Weight: 20%
+                                </span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">
-                                  {sectionStats.english.correct}/{sectionStats.english.total} correct ({sectionStats.english.percentage}%)
+                                  {sectionStats.english.correct}/
+                                  {sectionStats.english.total} correct (
+                                  {sectionStats.english.percentage}%)
                                 </span>
-                                <span className="font-bold text-orange-600">{sectionStats.english.score}</span>
+                                <span className="font-bold text-orange-600">
+                                  {sectionStats.english.score}
+                                </span>
                               </div>
                             </div>
                           </div>
