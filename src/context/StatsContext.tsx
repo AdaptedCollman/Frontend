@@ -41,8 +41,10 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = async () => {
-    const url = `http://localhost:3000/api/user-stats/${user?.id}`;
-    console.log('Fetching stats for user:', user?.id, 'URL:', url);
+    const baseUrl = import.meta.env.VITE_API_URL;
+    const url = `${baseUrl}/api/user-stats/${user?.id}`;
+
+    console.log("Fetching stats for user:", user?.id, "URL:", url);
     if (!user || !user.id) {
       setIsLoading(false);
       return;
@@ -51,22 +53,26 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
     try {
       const response = await axios.get(url);
-      console.log('Stats response:', response);
+      console.log("Stats response:", response);
       if (!response.data || !response.data.userId || !response.data.subjects) {
-        console.error('[StatsContext] Invalid stats response:', response.data);
+        console.error("[StatsContext] Invalid stats response:", response.data);
         setStats(null);
-        setError('No stats data received from backend.');
+        setError("No stats data received from backend.");
       } else {
         setStats(response.data);
         setError(null);
-        console.log('[StatsContext] Stats set:', response.data);
+        console.log("[StatsContext] Stats set:", response.data);
       }
     } catch (err) {
-      console.error('[StatsContext] Axios error:', err);
+      console.error("[StatsContext] Axios error:", err);
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || err.message || 'Failed to fetch stats (axios error)');
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to fetch stats (axios error)"
+        );
       } else {
-        setError('Failed to fetch stats (unknown error)');
+        setError("Failed to fetch stats (unknown error)");
       }
       setStats(null);
     } finally {

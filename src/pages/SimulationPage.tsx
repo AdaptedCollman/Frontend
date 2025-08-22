@@ -17,6 +17,9 @@ const CHAPTERS = [
 ];
 const SIMULATION_TIME = 60 * 60;
 
+// בסיס ל־API מה־env
+const API_BASE = import.meta.env.VITE_API_URL;
+
 interface Question {
   id: string;
   question: string;
@@ -50,7 +53,7 @@ const SimulationPage: React.FC = () => {
   const [testId, setTestId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
 
-  // Add new state for modals
+  // modals
   const [showStartModal, setShowStartModal] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
@@ -58,14 +61,10 @@ const SimulationPage: React.FC = () => {
   const [finalDuration, setFinalDuration] = useState<number | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  // Add new state for detailed scoring
   const [sectionStats, setSectionStats] = useState<any>(null);
 
-  // Add new state for chapter navigation denied modal
-  const [
-    showChapterNavigationDeniedModal,
-    setShowChapterNavigationDeniedModal,
-  ] = useState(false);
+  const [showChapterNavigationDeniedModal, setShowChapterNavigationDeniedModal] =
+    useState(false);
   const [deniedChapterLabel, setDeniedChapterLabel] = useState<string>("");
 
   useEffect(() => {
@@ -80,10 +79,11 @@ const SimulationPage: React.FC = () => {
     }
   }, [timer, isTimerRunning]);
 
+  // יצירת מבחן חדש
   useEffect(() => {
     const createTest = async () => {
       try {
-        const res = await axios.post("http://localhost:3000/api/tests", {
+        const res = await axios.post(`${API_BASE}/api/tests`, {
           userId,
           numQuestions: 66,
           topics: ["english", "hebrew", "math"],
@@ -100,32 +100,30 @@ const SimulationPage: React.FC = () => {
       hasCreatedTest.current = true;
       createTest();
     }
-  }, [showStartModal]);
+  }, [showStartModal, userId]);
 
+  // שליפת שאלה
   useEffect(() => {
     const fetchQuestion = async () => {
       setIsLoading(true);
       try {
         const chapter = CHAPTERS[currentChapter];
         if (!questions[currentChapter][currentQuestion]) {
-          const res = await axios.post("http://localhost:3000/api/questions", {
+          const res = await axios.post(`${API_BASE}/api/questions`, {
             topic: chapter.topic,
             difficulty: 3,
           });
           const q = res.data;
 
-          // המרה של תשובות לפורמט עם id + text
           const options = q.answerOptions.map((text: string, idx: number) => ({
             id: (idx + 1).toString(),
             text,
           }));
 
-          // מציאת האינדקס של התשובה הנכונה לפי הטקסט שלה
           const correctIndex = q.answerOptions.findIndex(
             (text: string) => text === q.correctAnswer
           );
-
-          const correctAnswerId = (correctIndex + 1).toString(); // המרה ל-id
+          const correctAnswerId = (correctIndex + 1).toString();
 
           const newQ: Question = {
             id: `${currentChapter}-${currentQuestion}`,
@@ -151,7 +149,7 @@ const SimulationPage: React.FC = () => {
     };
 
     fetchQuestion();
-  }, [currentChapter, currentQuestion]);
+  }, [currentChapter, currentQuestion, questions]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -169,24 +167,15 @@ const SimulationPage: React.FC = () => {
     setIsCorrect(isAnswerCorrect);
     setIsSubmitted(true);
 
-    // Track this question answer to UserStats
     try {
-      const timeSpent = 1; // Default time for simulation questions
-      const subject = CHAPTERS[currentChapter].topic;
-
       const payload = {
         userId: user.id,
-        subject: subject,
+        subject: CHAPTERS[currentChapter].topic,
         correct: isAnswerCorrect,
-        timeSpent: timeSpent,
+        timeSpent: 1,
       };
 
-      console.log("[SimulationPage] Tracking question:", payload);
-
-      await axios.post(
-        "http://localhost:3000/api/user-stats/track-question",
-        payload
-      );
+      await axios.post(`${API_BASE}/api/user-stats/track-question`, payload);
     } catch (error) {
       console.error("Failed to track question:", error);
     }
@@ -204,33 +193,25 @@ const SimulationPage: React.FC = () => {
     });
   };
 
+  // סיום סימולציה
   const finishSimulation = async () => {
-    // Calculate section-specific results
     const sectionResults: SectionResults = {
-      english: { correct: 0, total: CHAPTERS[0].count }, // English section
-      verbal: { correct: 0, total: CHAPTERS[1].count }, // Hebrew section (verbal reasoning)
-      quantitative: { correct: 0, total: CHAPTERS[2].count }, // Math section (quantitative reasoning)
+      english: { correct: 0, total: CHAPTERS[0].count },
+      verbal: { correct: 0, total: CHAPTERS[1].count },
+      quantitative: { correct: 0, total: CHAPTERS[2].count },
     };
 
-    // Count correct answers for each section
     questions.forEach((chapter, chapterIndex) => {
       chapter.forEach((q) => {
         if (q && q.selectedAnswer === q.correctAnswer) {
-          if (chapterIndex === 0) {
-            sectionResults.english.correct++;
-          } else if (chapterIndex === 1) {
-            sectionResults.verbal.correct++;
-          } else if (chapterIndex === 2) {
-            sectionResults.quantitative.correct++;
-          }
+          if (chapterIndex === 0) sectionResults.english.correct++;
+          else if (chapterIndex === 1) sectionResults.verbal.correct++;
+          else if (chapterIndex === 2) sectionResults.quantitative.correct++;
         }
       });
     });
 
-    // Calculate final psychometric score using Israeli scoring system
     const psychometricScore = calculatePsychometricScore(sectionResults);
-
-    // Get detailed section statistics for display
     const detailedStats = getSectionStats(sectionResults);
 
     const duration = startTime
@@ -238,7 +219,7 @@ const SimulationPage: React.FC = () => {
       : SIMULATION_TIME - timer;
 
     try {
-      await axios.put(`http://localhost:3000/api/tests/${testId}/finish`, {
+      await axios.put(`${API_BASE}/api/tests/${testId}/finish`, {
         score: psychometricScore,
         duration,
       });
@@ -252,10 +233,7 @@ const SimulationPage: React.FC = () => {
     }
   };
 
-  const handleSubmitClick = () => {
-    setShowConfirmModal(true);
-  };
-
+  const handleSubmitClick = () => setShowConfirmModal(true);
   const handleNext = () => {
     if (currentQuestion < CHAPTERS[currentChapter].count - 1) {
       setCurrentQuestion((q) => q + 1);
@@ -274,9 +252,7 @@ const SimulationPage: React.FC = () => {
 
   const handleNavigationConfirm = () => {
     setShowNavigationModal(false);
-    if (pendingNavigation) {
-      navigate(pendingNavigation);
-    }
+    if (pendingNavigation) navigate(pendingNavigation);
     setPendingNavigation(null);
   };
 
@@ -323,9 +299,7 @@ const SimulationPage: React.FC = () => {
                       <p className="font-semibold text-gray-700 mb-1">
                         Section Weights:
                       </p>
-                      <p className="text-xs">
-                        • Verbal Reasoning (Hebrew): 40%
-                      </p>
+                      <p className="text-xs">• Verbal Reasoning (Hebrew): 40%</p>
                       <p className="text-xs">
                         • Quantitative Reasoning (Math): 40%
                       </p>

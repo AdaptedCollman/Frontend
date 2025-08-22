@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/api/auth";
+const API_BASE = import.meta.env.VITE_API_URL; // נקרא מה־env
+const API_URL = `${API_BASE}/api/auth`;
 
 interface LoginData {
   email: string;
@@ -174,7 +175,7 @@ export const authService = {
       }
 
       const response = await axios.put(
-        `http://localhost:3000/api/users/${user.id}`,
+        `${API_BASE}/api/users/${user.id}`,
         data,
         {
           headers: {

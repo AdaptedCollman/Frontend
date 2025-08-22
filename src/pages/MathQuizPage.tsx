@@ -38,12 +38,13 @@ const MathQuizPage = () => {
   );
   const [hasSubmittedAutomatically, setHasSubmittedAutomatically] =
     useState(false);
+  const baseUrl = import.meta.env.VITE_API_URL;
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:3000/api/questions", {
+      const res = await axios.post(`${baseUrl}/api/questions`, {
         topic: "math",
         difficulty: difficultyLevel + 2,
       });
@@ -131,7 +132,7 @@ const MathQuizPage = () => {
       console.log("[MathQuizPage] Submitting:", payload);
 
       const response = await axios.post(
-        "http://localhost:3000/api/user-stats/track-question",
+        `${baseUrl}/api/user-stats/track-question`,
         payload
       );
 

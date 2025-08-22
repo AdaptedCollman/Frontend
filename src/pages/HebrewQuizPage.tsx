@@ -33,17 +33,18 @@ const HebrewQuizPage = () => {
   const [timeRemaining, setTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(
-    Date.now()
-  );
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [hasSubmittedAutomatically, setHasSubmittedAutomatically] =
     useState(false);
+
+  // משתמשים ב־.env ל־API
+  const API_BASE = import.meta.env.VITE_API_URL;
 
   const fetchQuestion = async () => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:3000/api/questions", {
+      const res = await axios.post(`${API_BASE}/api/questions`, {
         topic: "hebrew",
         difficulty: difficultyLevel + 2,
       });
@@ -53,6 +54,7 @@ const HebrewQuizPage = () => {
         (text: string) => text === q.correctAnswer
       );
       const correctAnswerId = (correctIndex + 1).toString();
+
       setQuestion({
         id: 1,
         totalQuestions: 1,
@@ -129,7 +131,7 @@ const HebrewQuizPage = () => {
       };
       console.log("[HebrewQuizPage] Submitting:", payload);
       const response = await axios.post(
-        "http://localhost:3000/api/user-stats/track-question",
+        `${API_BASE}/api/user-stats/track-question`,
         payload
       );
       console.log("[HebrewQuizPage] Backend response:", response.data);
