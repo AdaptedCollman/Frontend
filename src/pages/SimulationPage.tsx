@@ -63,8 +63,10 @@ const SimulationPage: React.FC = () => {
 
   const [sectionStats, setSectionStats] = useState<any>(null);
 
-  const [showChapterNavigationDeniedModal, setShowChapterNavigationDeniedModal] =
-    useState(false);
+  const [
+    showChapterNavigationDeniedModal,
+    setShowChapterNavigationDeniedModal,
+  ] = useState(false);
   const [deniedChapterLabel, setDeniedChapterLabel] = useState<string>("");
 
   useEffect(() => {
@@ -138,18 +140,20 @@ const SimulationPage: React.FC = () => {
             updated[currentChapter][currentQuestion] = newQ;
             return updated;
           });
+
+          // Only reset state for new questions, not when updating existing ones
+          setSelectedAnswer("");
+          setIsSubmitted(false);
+          setIsCorrect(false);
         }
       } catch (err) {
         console.error("Failed to fetch question:", err);
       }
       setIsLoading(false);
-      setSelectedAnswer("");
-      setIsSubmitted(false);
-      setIsCorrect(false);
     };
 
     fetchQuestion();
-  }, [currentChapter, currentQuestion, questions]);
+  }, [currentChapter, currentQuestion]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -299,7 +303,9 @@ const SimulationPage: React.FC = () => {
                       <p className="font-semibold text-gray-700 mb-1">
                         Section Weights:
                       </p>
-                      <p className="text-xs">• Verbal Reasoning (Hebrew): 40%</p>
+                      <p className="text-xs">
+                        • Verbal Reasoning (Hebrew): 40%
+                      </p>
                       <p className="text-xs">
                         • Quantitative Reasoning (Math): 40%
                       </p>
